@@ -1,48 +1,65 @@
 binary := "nemesis"
 bin_dir := "bin"
 
-default: build
+# list available recipes
+default:
+    @just --list
 
-# Compile the binary into ./bin
+# compile the binary into ./bin
+[group('build')]
 build:
     go build -o {{bin_dir}}/{{binary}} ./cmd/nemesis
 
-# Build and run
-run:
-    go run ./cmd/nemesis
-
-# Build and run with the AI visualiser window
-run-visualiser:
-    go run ./cmd/nemesis --visualiser
-
-# Run all tests
+# run all tests
+[group('test')]
 test:
     go test ./...
 
-# Run go vet
-vet:
-    go vet ./...
-
-# Run golangci-lint
+# run golangci-lint
+[group('dev')]
 lint:
     golangci-lint run
 
-# Benchmark the renderer (Frame cost)
-bench:
-    go test -run=^$ -bench=. -benchmem ./internal/render
+# format the code
+[group('dev')]
+fmt:
+    golangci-lint fmt
 
-# Fuzz the world generator for a fixed time
-fuzz:
-    go test -run=^$ -fuzz=FuzzGenerate -fuzztime=30s ./internal/world
-
-# Run govulncheck
-vulncheck:
-    govulncheck ./...
-
-# Tidy module dependencies
+# tidy module dependencies
+[group('dev')]
 tidy:
     go mod tidy
 
-# Remove build artifacts
+# full gate: lint + test + build. all must pass before committing
+[group('dev')]
+ci: lint test build
+
+# build and run
+[group('run')]
+run:
+    go run ./cmd/nemesis
+
+# build and run with the AI visualiser window
+[group('run')]
+run-visualiser:
+    go run ./cmd/nemesis --visualiser
+
+# benchmark the renderer (Frame cost)
+[group('test')]
+bench:
+    go test -run=^$ -bench=. -benchmem ./internal/render
+
+# fuzz the world generator for a fixed time
+[group('test')]
+fuzz:
+    go test -run=^$ -fuzz=FuzzGenerate -fuzztime=30s ./internal/world
+
+# run govulncheck
+[group('dev')]
+vulncheck:
+    govulncheck ./...
+
+# remove build artifacts
+[group('dev')]
 clean:
     rm -rf {{bin_dir}} dist

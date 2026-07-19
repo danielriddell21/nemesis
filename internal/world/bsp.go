@@ -1,40 +1,23 @@
 package world
 
-// This file implements binary space partitioning of the grid into rooms joined
-// by corridors. The map is recursively cut into sub-regions; each leaf region
-// gets a room carved into it; sibling regions are then linked with L-shaped
-// corridors so the whole tree is connected.
-
 const (
-	// minLeaf is the smallest dimension a region may have after a split. A
-	// region must be at least 2*minLeaf along an axis to be split on that axis.
-	minLeaf = 7
-	// maxLeaf is the size above which a region is always split; below it,
-	// splitting becomes probabilistic to vary room sizes.
-	maxLeaf = 16
-	// minRoom is the smallest room dimension carved into a leaf.
-	minRoom = 3
-	// roomPad keeps carved rooms one tile inside their region so adjacent rooms
-	// never merge into each other.
-	roomPad = 1
-	// maxDepth caps recursion; size guards usually stop splitting first.
+	minLeaf  = 7
+	maxLeaf  = 16
+	minRoom  = 3
+	roomPad  = 1
 	maxDepth = 7
 )
 
-// bspNode is one region in the partition tree. Internal nodes have two children;
-// leaf nodes carry a carved room.
 type bspNode struct {
 	bounds      Room
 	left, right *bspNode
 	room        *Room
 }
 
-// leaf reports whether this node has no children.
 func (n *bspNode) leaf() bool {
 	return n.left == nil && n.right == nil
 }
 
-// split recursively partitions a region into children.
 func (g *rng) split(n *bspNode, depth int) {
 	if depth >= maxDepth {
 		return
@@ -65,8 +48,6 @@ func (g *rng) split(n *bspNode, depth int) {
 	g.split(n.right, depth+1)
 }
 
-// chooseSplitAxis picks a cut orientation, preferring to split the longer side
-// so rooms stay reasonably square.
 func chooseSplitAxis(g *rng, w, h int, canV, canH bool) bool {
 	switch {
 	case canV && !canH:
@@ -82,8 +63,6 @@ func chooseSplitAxis(g *rng, w, h int, canV, canH bool) bool {
 	}
 }
 
-// carveRooms walks to every leaf and carves a randomly sized/placed room inside
-// its region, recording it on the node and stamping floor tiles into the level.
 func (g *rng) carveRooms(n *bspNode, l *Level) {
 	if !n.leaf() {
 		if n.left != nil {
@@ -112,8 +91,6 @@ func (g *rng) carveRooms(n *bspNode, l *Level) {
 	}
 }
 
-// connect links the rooms of a node's two subtrees with a corridor, bottom-up,
-// returning a representative room for the subtree so parents can keep linking.
 func (g *rng) connect(n *bspNode, l *Level) *Room {
 	if n.room != nil {
 		return n.room
@@ -134,8 +111,6 @@ func (g *rng) connect(n *bspNode, l *Level) *Room {
 	return rr
 }
 
-// carveCorridor digs an L-shaped corridor between two cells, choosing which leg
-// to dig first at random.
 func (g *rng) carveCorridor(a, b Coord, l *Level) {
 	if g.chance(0.5) {
 		carveH(l, a.X, b.X, a.Y)
@@ -168,10 +143,6 @@ func carveV(l *Level, y1, y2, x int) {
 	}
 }
 
-// carveStubs digs a handful of short blind nooks off the existing floor into the
-// solid mass. The BSP corridors always run room-to-room, so without these the
-// layout has no dead ends at all — and a hunted player needs alcoves to duck
-// into.
 func (g *rng) carveStubs(l *Level) {
 	const (
 		attempts = 24
@@ -196,9 +167,6 @@ func (g *rng) carveStubs(l *Level) {
 	}
 }
 
-// digStub digs up to length cells from f in direction d, keeping the passage one
-// cell wide: each dug cell must touch exactly one walkable cell (the previous
-// one), so the far end is a true dead end. It reports whether anything was dug.
 func digStub(l *Level, f, d Coord, length int) bool {
 	dug := 0
 	c := f
@@ -225,8 +193,6 @@ func digStub(l *Level, f, d Coord, length int) bool {
 	return dug > 0
 }
 
-// collectRooms returns every carved room in deterministic in-order, so spawn and
-// objective selection is reproducible.
 func collectRooms(n *bspNode) []Room {
 	if n == nil {
 		return nil

@@ -1,16 +1,15 @@
-name: release
+name: Release
 
 on:
   push:
-    tags:
-      - "v*"
+    tags: ["v*"]
 
 permissions:
   contents: write
 
 jobs:
   goreleaser:
-    # macOS so the cgo/Metal Ebiten cask binary can be built natively (a Linux clang
+    # macOS so the cgo/Metal Ebiten GUI cask can be built natively (a Linux clang
     # cannot cross-build a darwin cgo binary).
     runs-on: macos-latest
     steps:

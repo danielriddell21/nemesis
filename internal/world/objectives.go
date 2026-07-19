@@ -2,15 +2,6 @@ package world
 
 import "sort"
 
-// This file places the run's points of interest: the spawn, the escape airlock,
-// and the objective consoles that must all be activated before the airlock
-// unlocks. Consoles are pushed far from the spawn and from each other so a run
-// has to criss-cross the map while hunted.
-
-// placeSpawnAndExit marks the first room's centre as spawn and the farthest
-// non-vent cell reachable from it as the escape airlock. Choosing the exit from
-// the spawn's reachability field maximises the journey and guarantees the exit
-// is reachable by construction; the check in Generate remains a backstop.
 func placeSpawnAndExit(l *Level, rooms []Room) {
 	if len(rooms) == 0 {
 		return
@@ -33,9 +24,6 @@ func placeSpawnAndExit(l *Level, rooms []Room) {
 	}
 }
 
-// placeConsoles mounts want objective consoles into room walls, favouring rooms
-// far from the spawn and spread apart from one another. It returns early if the
-// map cannot host that many; Generate treats a shortfall as a failed candidate.
 func placeConsoles(l *Level, g *rng, rooms []Room, want int) {
 	if len(rooms) == 0 || want <= 0 {
 		return
@@ -84,8 +72,6 @@ func placeConsoles(l *Level, g *rng, rooms []Room, want int) {
 	}
 }
 
-// spacedFrom reports whether c keeps at least spread Manhattan distance from
-// every existing console.
 func spacedFrom(consoles []Coord, c Coord, spread int) bool {
 	for _, o := range consoles {
 		if manhattan(o, c) < spread {
@@ -95,9 +81,6 @@ func spacedFrom(consoles []Coord, c Coord, spread int) bool {
 	return true
 }
 
-// consoleSite finds a wall cell on the room's perimeter to mount a console
-// into: still solid wall, facing a floor cell of the room. The perimeter is
-// scanned from a random offset so consoles don't all hug the top-left corner.
 func consoleSite(l *Level, g *rng, r Room) (Coord, bool) {
 	ring := roomPerimeter(r)
 	off := g.intn(len(ring))
@@ -118,7 +101,6 @@ func consoleSite(l *Level, g *rng, r Room) (Coord, bool) {
 	return Coord{}, false
 }
 
-// manhattan returns the L1 distance between two cells.
 func manhattan(a, b Coord) int {
 	return abs(a.X-b.X) + abs(a.Y-b.Y)
 }

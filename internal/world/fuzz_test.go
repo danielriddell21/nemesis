@@ -2,8 +2,6 @@ package world
 
 import "testing"
 
-// FuzzGenerate throws arbitrary configs at the generator: whatever the inputs,
-// it must either fail cleanly or return a level that honours the guarantee.
 func FuzzGenerate(f *testing.F) {
 	f.Add(48, 32, int64(1), 3)
 	f.Add(16, 16, int64(0), 1)

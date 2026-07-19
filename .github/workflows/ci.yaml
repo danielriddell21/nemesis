@@ -4,7 +4,6 @@ on:
   push:
     branches: ["trunk"]
   pull_request:
-    branches: ["trunk"]
 
 permissions:
   contents: read
@@ -23,9 +22,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libgl1-mesa-dev libxcursor-dev libxi-dev \
             libxinerama-dev libxrandr-dev libxxf86vm-dev libasound2-dev pkg-config xvfb
-      - name: Test
-        # The gui package initialises Ebiten/GLFW on import, which needs a display.
-        run: xvfb-run -a go test -coverprofile=coverage.txt ./...
+      - run: xvfb-run -a go test -coverprofile=coverage.txt ./...
       - uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -61,7 +58,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libgl1-mesa-dev libxcursor-dev libxi-dev \
             libxinerama-dev libxrandr-dev libxxf86vm-dev libasound2-dev pkg-config
-      - run: go build -o /dev/null ./cmd/nemesis
+      - run: go build ./...
 
   mutate:
     name: Mutation test
@@ -77,11 +74,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libgl1-mesa-dev libxcursor-dev libxi-dev \
-            libxinerama-dev libxrandr-dev libxxf86vm-dev libasound2-dev pkg-config xvfb
-      - name: Start virtual display
-        run: |
-          Xvfb :99 -screen 0 1280x1024x24 >/dev/null 2>&1 &
-          echo "DISPLAY=:99" >> "$GITHUB_ENV"
+            libxinerama-dev libxrandr-dev libxxf86vm-dev libasound2-dev pkg-config
       - uses: go-gremlins/gremlins-action@v1
         with:
           args: --config .gremlins.yaml

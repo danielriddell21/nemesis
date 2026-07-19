@@ -5,24 +5,17 @@ import (
 	"fmt"
 )
 
-// Minimum grid size that can hold a sensible partition.
 const minDimension = 16
 
-// ErrUnreachable is returned when generation cannot produce a level whose exit
-// and consoles are all reachable within the attempt budget.
 var ErrUnreachable = errors.New("world: exhausted attempts producing a connected level")
 
-// Config controls level generation.
 type Config struct {
-	// Width and Height are the grid dimensions in tiles.
 	Width, Height int
-	// Seed makes generation deterministic: the same Config yields the same Level.
+
 	Seed int64
-	// Consoles is how many objective consoles the level requires before the
-	// exit unlocks. Zero selects the default of 3.
+
 	Consoles int
-	// MaxAttempts bounds how many times generation retries when a candidate
-	// level fails the reachability guarantee. Zero selects a sensible default.
+
 	MaxAttempts int
 }
 
@@ -45,11 +38,6 @@ func (c Config) normalized() Config {
 	return c
 }
 
-// Generate produces a level from cfg. It repeatedly builds candidates until one
-// passes the guarantee — the exit and every console reachable from the spawn,
-// the full console count placed, and a traversable vent network — then returns
-// it. Each attempt derives a distinct but deterministic sub-seed, so a given
-// Config always yields an identical Level.
 func Generate(cfg Config) (*Level, error) {
 	cfg = cfg.normalized()
 	for attempt := range cfg.MaxAttempts {
@@ -64,8 +52,6 @@ func Generate(cfg Config) (*Level, error) {
 	return nil, fmt.Errorf("%w: %dx%d seed=%d", ErrUnreachable, cfg.Width, cfg.Height, cfg.Seed)
 }
 
-// generateOnce builds a single candidate level: partition, carve rooms, connect
-// them, then thread the vents and place doors, objectives and lighting.
 func generateOnce(cfg Config, seed int64) *Level {
 	l := newLevel(cfg.Width, cfg.Height, seed)
 	g := newRNG(seed)
@@ -86,9 +72,6 @@ func generateOnce(cfg Config, seed int64) *Level {
 	return l
 }
 
-// viable checks a candidate against the generation guarantee: the exit distinct
-// from and reachable from the spawn once doors open, every requested console
-// placed with its face reachable, and a vent network with at least two mouths.
 func viable(l *Level, cfg Config) bool {
 	if l.Exit == l.Spawn || !reachable(l, l.Spawn, l.Exit, blocksWalls(l)) {
 		return false
@@ -105,8 +88,6 @@ func viable(l *Level, cfg Config) bool {
 	return len(l.VentMouths) >= 2
 }
 
-// faceReachable reports whether some walkable cell adjacent to a console is
-// reachable from the spawn, i.e. the player can stand in front of it.
 func faceReachable(l *Level, dist []int, console Coord) bool {
 	for _, n := range neighbors4(console) {
 		if l.InBounds(n.X, n.Y) && dist[n.Y*l.Width+n.X] >= 0 {
