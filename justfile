@@ -54,6 +54,11 @@ bench:
 fuzz:
     go test -run=^$ -fuzz=FuzzGenerate -fuzztime=30s ./internal/world
 
+# regenerate the documentation demo clip and stills
+[group('run')]
+demos:
+    go run ./tools/demogen
+
 # run govulncheck
 [group('dev')]
 vulncheck:

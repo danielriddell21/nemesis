@@ -39,6 +39,7 @@ cmd/nemesis/         entry point
 internal/cli/        cobra root + leader/child window coordination
 internal/gui/        Ebiten windows: game + AI visualiser (the only package importing Ebiten)
 internal/            implementation packages (render, sim, world, audio, …)
+tools/               developer tooling (demogen)
 docs/                documentation
 ```
 

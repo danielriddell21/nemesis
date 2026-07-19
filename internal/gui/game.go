@@ -165,7 +165,7 @@ func (g *Game) publish() {
 		trySend(g.link.Out, Msg{Type: "events", Events: append([]telemetry.Event(nil), g.events...)})
 	}
 	if g.sim.TickCount()%stateEveryNth == 0 || g.sim.Dead() || g.sim.Escaped() {
-		s := snapshot(g.sim)
+		s := Snapshot(g.sim)
 		trySend(g.link.Out, Msg{Type: "state", State: &s})
 	}
 }
@@ -201,7 +201,7 @@ func (g *Game) drainLink() {
 	}
 }
 
-func snapshot(s *sim.Game) StateMsg {
+func Snapshot(s *sim.Game) StateMsg {
 	path := s.Alien.Path()
 	cells := make([][2]int, 0, len(path))
 	for _, c := range path {

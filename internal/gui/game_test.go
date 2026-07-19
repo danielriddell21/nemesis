@@ -27,7 +27,7 @@ func TestSnapshotMirrorsSim(t *testing.T) {
 	for range 30 {
 		s.Tick(sim.Input{Forward: 1}, 1.0/60)
 	}
-	snap := snapshot(s)
+	snap := Snapshot(s)
 	if snap.PlayerX != s.Player.Pos.X || snap.PlayerY != s.Player.Pos.Y {
 		t.Error("snapshot player position out of sync")
 	}
@@ -45,7 +45,7 @@ func TestSnapshotCarriesLearning(t *testing.T) {
 		t.Fatal(err)
 	}
 	s := sim.New(l, sim.WithLearned(sim.Learned{Pings: 9, Creaks: 11, Cold: 2}))
-	snap := snapshot(s)
+	snap := Snapshot(s)
 	if snap.PingTier != 2 || snap.VentTier != 2 || snap.SearchTier != 2 {
 		t.Errorf("tiers = %d/%d/%d, want 2/2/2", snap.PingTier, snap.VentTier, snap.SearchTier)
 	}

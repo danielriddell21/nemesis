@@ -34,7 +34,12 @@ a separate process fed over a pipe, like a director's commentary track.
 go run ./cmd/nemesis --visualiser
 ```
 
-![nemesis AI visualiser](docs/demos/visualiser.png)
+Below, a bot plays while the visualiser records: watch the hunter patrol,
+investigate noise ripples, hunt, lose the trail and search — and watch the
+LEARNED row climb as it hears tracker pings and vent creaks, remembering
+across runs.
+
+![nemesis AI visualiser](docs/demos/hunter.gif)
 
 ## Install
 
