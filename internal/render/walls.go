@@ -151,7 +151,7 @@ func flicker(now float64) float64 {
 }
 
 func (r *Renderer) putShaded(x, y int, c color.RGBA, light, dist float64) {
-	k := light / (1 + dist*dist*0.06)
+	k := light * 1.25 / (1 + dist*dist*0.035)
 	if k > 1 {
 		k = 1
 	}

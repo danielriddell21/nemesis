@@ -31,12 +31,12 @@ var palette = struct {
 	deathTint     color.RGBA
 	escapeTint    color.RGBA
 }{
-	ceiling:       color.RGBA{R: 16, G: 18, B: 22, A: 255},
-	floor:         color.RGBA{R: 30, G: 32, B: 36, A: 255},
-	wall:          color.RGBA{R: 92, G: 100, B: 110, A: 255},
-	door:          color.RGBA{R: 110, G: 92, B: 60, A: 255},
-	vent:          color.RGBA{R: 60, G: 54, B: 46, A: 255},
-	console:       color.RGBA{R: 70, G: 90, B: 96, A: 255},
+	ceiling:       color.RGBA{R: 24, G: 27, B: 33, A: 255},
+	floor:         color.RGBA{R: 44, G: 47, B: 53, A: 255},
+	wall:          color.RGBA{R: 128, G: 138, B: 150, A: 255},
+	door:          color.RGBA{R: 150, G: 122, B: 76, A: 255},
+	vent:          color.RGBA{R: 88, G: 78, B: 64, A: 255},
+	console:       color.RGBA{R: 96, G: 130, B: 138, A: 255},
 	consoleActive: color.RGBA{R: 70, G: 160, B: 96, A: 255},
 	alien:         color.RGBA{R: 26, G: 20, B: 30, A: 255},
 	exitLocked:    color.RGBA{R: 180, G: 60, B: 50, A: 255},

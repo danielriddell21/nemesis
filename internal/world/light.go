@@ -1,14 +1,14 @@
 package world
 
 const (
-	corridorLight = 0.35
+	corridorLight = 0.4
 	ventLight     = 0.15
 	flickerChance = 0.18
 )
 
 func assignLight(l *Level, g *rng, rooms []Room) {
 	for _, r := range rooms {
-		base := g.betweenF(0.45, 0.85)
+		base := g.betweenF(0.5, 0.9)
 		flicker := g.chance(flickerChance)
 		for y := r.Y; y < r.Y+r.H; y++ {
 			for x := r.X; x < r.X+r.W; x++ {
