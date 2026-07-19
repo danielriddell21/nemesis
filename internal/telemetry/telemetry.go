@@ -2,6 +2,7 @@ package telemetry
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/danielriddell21/nemesis/internal/sim"
 )
@@ -15,6 +16,8 @@ type Event struct {
 	State   string  `json:"state,omitempty"`
 	TargetX int     `json:"tx,omitempty"`
 	TargetY int     `json:"ty,omitempty"`
+	Learn   string  `json:"learn,omitempty"`
+	Tier    int     `json:"tier,omitempty"`
 }
 
 func FromObservation(o sim.Observation) Event {
@@ -31,6 +34,9 @@ func FromObservation(o sim.Observation) Event {
 		e.TargetX, e.TargetY = o.Target.X, o.Target.Y
 	case sim.ObsAlienHeard, sim.ObsDirectorNudge:
 		e.TargetX, e.TargetY = o.Target.X, o.Target.Y
+	case sim.ObsAlienLearn:
+		e.Learn = o.Learn.String()
+		e.Tier = o.Tier
 	}
 	return e
 }
@@ -53,6 +59,8 @@ func (e Event) Line() string {
 		return fmt.Sprintf("HUNTER SPOTTED PREY AT %d %d", e.X, e.Y)
 	case "director-nudge":
 		return fmt.Sprintf("DIRECTOR STEERS HUNT TO %d %d", e.TargetX, e.TargetY)
+	case "alien-learn":
+		return fmt.Sprintf("HUNTER LEARNED %s %s", strings.ToUpper(e.Learn), roman(e.Tier))
 	case "escape":
 		return "PREY ESCAPED THROUGH THE AIRLOCK"
 	case "death":
@@ -104,10 +112,18 @@ func (b *Bus) Recent() []Event {
 }
 
 func (e Event) Kind() (sim.ObservationKind, bool) {
-	for k := sim.ObsStep; k <= sim.ObsDirectorNudge; k++ {
+	for k := sim.ObsStep; k <= sim.ObsAlienLearn; k++ {
 		if k.String() == e.Type {
 			return k, true
 		}
 	}
 	return 0, false
+}
+
+func roman(n int) string {
+	numerals := []string{"0", "I", "II", "III", "IV", "V"}
+	if n < 0 || n >= len(numerals) {
+		return "V+"
+	}
+	return numerals[n]
 }

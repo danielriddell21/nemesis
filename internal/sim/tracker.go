@@ -45,7 +45,7 @@ func (g *Game) tickTracker(in Input, dt float64, noise *noiseEvent) {
 
 	// The ping is a real sound in the world: the hunter can hear it too.
 	g.observe(Observation{Kind: ObsTrackerPing, At: g.Player.Pos.Cell(), Radius: pingNoise})
-	noise.merge(noiseEvent{at: g.Player.Pos, radius: pingNoise})
+	noise.merge(noiseEvent{at: g.Player.Pos, radius: pingNoise, kind: ObsTrackerPing})
 
 	// The tracker senses motion, not bodies: a still hunter paints no blip.
 	to := g.Alien.Pos.Sub(g.Player.Pos)

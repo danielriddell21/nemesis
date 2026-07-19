@@ -115,6 +115,7 @@ func (v *Visualiser) render() {
 	}
 	ts, offX, offY := v.mapTransform()
 	v.renderTiles(ts, offX, offY)
+	v.renderHeat(ts, offX, offY)
 	v.renderPath(ts, offX, offY)
 	v.renderRipples(ts, offX, offY)
 	v.renderActors(ts, offX, offY)
@@ -168,6 +169,38 @@ func (v *Visualiser) tileColor(l *world.Level, x, y int) color.RGBA {
 			G: uint8(float64(c.G) * k),
 			B: uint8(float64(c.B) * k),
 			A: 255,
+		}
+	}
+}
+
+func (v *Visualiser) renderHeat(ts, offX, offY int) {
+	// Hot rooms are where the hunter keeps detecting prey: its learned habits.
+	l := v.m.level
+	for _, h := range v.m.state.Hot {
+		if h[0] < 0 || h[0] >= len(l.Rooms) {
+			continue
+		}
+		r := l.Rooms[h[0]]
+		alpha := min(float64(h[1])/100*0.12, 0.45)
+		for y := r.Y; y < r.Y+r.H; y++ {
+			for x := r.X; x < r.X+r.W; x++ {
+				v.blendRect(offX+x*ts, offY+y*ts, ts, ts, visPalette.exitSealed, alpha)
+			}
+		}
+	}
+}
+
+func (v *Visualiser) blendRect(x, y, w, h int, c color.RGBA, alpha float64) {
+	for dy := range h {
+		for dx := range w {
+			px, py := x+dx, y+dy
+			if px < 0 || py < 0 || px >= visWindowW || py >= visWindowH {
+				continue
+			}
+			i := (py*visWindowW + px) * 4
+			v.fb[i] = uint8(float64(v.fb[i])*(1-alpha) + float64(c.R)*alpha)
+			v.fb[i+1] = uint8(float64(v.fb[i+1])*(1-alpha) + float64(c.G)*alpha)
+			v.fb[i+2] = uint8(float64(v.fb[i+2])*(1-alpha) + float64(c.B)*alpha)
 		}
 	}
 }
@@ -240,6 +273,8 @@ func (v *Visualiser) renderPanel() {
 		airlock = "AIRLOCK OPEN"
 	}
 	v.text(x, y, fmt.Sprintf("SYSTEMS %d/%d  %s", s.Done, s.Total, airlock), visPalette.dim)
+	y += 16
+	v.text(x, y, fmt.Sprintf("LEARNED TRACKER %d  VENTS %d  SEARCH %d", s.PingTier, s.VentTier, s.SearchTier), visPalette.dim)
 	y += 24
 	v.text(x, y, "TRIGGERS", visPalette.text)
 	y += 16

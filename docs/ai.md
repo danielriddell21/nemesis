@@ -61,6 +61,30 @@ The director runs above the creature and paces the run:
   always draws it toward the noise. Unlocking your escape route arms your
   enemy.
 
+## It learns
+
+Like the xenomorph, the hunter doesn't get faster with time — it gets
+*smarter*, unlocking behaviours as it watches you repeat tactics:
+
+- **Tracker familiarity.** Every ping it hears teaches it what that chirp
+  means. After a few it investigates pings precisely; after enough, a ping
+  heard close by is answered with a dead sprint, not curiosity. Habitual
+  scope-checkers train their own predator.
+- **Duct literacy.** Every crawl it hears through the vents teaches it where
+  prey goes to disappear. A duct-literate hunter checks the nearest grate
+  whenever it searches an area.
+- **Search craft.** Every hunt that goes cold makes future searches longer
+  and its sweeps between points faster, up to a cap.
+- **Hot zones.** Every detection — sight or sound — deposits heat in the room
+  it happened in. Patrols drift toward the hottest rooms; the heat bleeds
+  away over a minute or so if you break your habits.
+
+Learning survives the run: die and press Enter, and the next station is
+generated fresh — but the same hunter steps into it, remembering everything
+it learned about you. Only a fresh launch of the game gets you a naive one.
+The visualiser shows the learned tiers, logs each unlock in the trigger feed
+("HUNTER LEARNED TRACKER II"), and tints the hot rooms red.
+
 ## The tracker
 
 The motion tracker is the one tool, and it obeys the fiction: it senses

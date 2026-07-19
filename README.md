@@ -65,6 +65,11 @@ sudo apt install libgl1-mesa-dev libxrandr-dev libxcursor-dev libxinerama-dev li
   state machine over A* paths that prefer the vents; a director paces the
   tension, gestures the hunter toward your neighbourhood without revealing your
   cell, leashes it when it camps, and escalates as generators come online.
+- **It learns** — repeat a tactic and the hunter adapts: tracker pings it hears
+  stop provoking curiosity and start provoking a sprint, vent crawls teach it
+  to check the grates, cold trails sharpen its searches, and a heat map of past
+  detections pulls its patrols toward your habits. What it learns survives into
+  your next run.
 - **Stealth movement** — sneak, walk or run; each gait trades speed against the
   noise the hunter hears. Ducts are slow, dark, claustrophobic — and they creak.
 - **The motion tracker** — hold to raise: a bearing/distance blip of anything

@@ -61,6 +61,7 @@ type Alien struct {
 	lastKnown    Vec2
 	tracked      bool
 	wasVent      bool
+	ventChecked  bool
 }
 
 func newAlien(pos Vec2) Alien {
@@ -122,6 +123,7 @@ func (g *Game) senseTick(noise noiseEvent) {
 	if g.alienSees() {
 		if a.State != StateHunt {
 			g.observe(Observation{Kind: ObsAlienSeen, At: g.Player.Pos.Cell()})
+			g.depositHeat(g.Player.Pos.Cell())
 			g.setAlienState(StateHunt)
 		}
 		a.lastKnown = g.Player.Pos
@@ -134,12 +136,31 @@ func (g *Game) senseTick(noise noiseEvent) {
 	if g.alienHears(noise) {
 		c := noise.at.Cell()
 		g.observe(Observation{Kind: ObsAlienHeard, At: a.Pos.Cell(), Target: c, Radius: noise.radius})
-		g.setAlienTarget(c)
+		g.hearNoise(noise.kind, c)
 		if a.State == StateLurk {
 			g.director.wake = 0
 		}
+		if g.pingRush(noise) {
+			return
+		}
+		g.setAlienTarget(c)
 		g.setAlienState(StateInvestigate)
 	}
+}
+
+func (g *Game) pingRush(noise noiseEvent) bool {
+	// A hunter that has heard enough pings knows exactly what that chirp is:
+	// close ones are answered with a dead sprint, not curiosity.
+	if noise.kind != ObsTrackerPing || g.learning.pingTier() < 2 {
+		return false
+	}
+	if noise.at.Sub(g.Alien.Pos).Len() > pingRushRange {
+		return false
+	}
+	g.Alien.lastKnown = noise.at
+	g.Alien.tracked = false
+	g.setAlienState(StateHunt)
+	return true
 }
 
 func (g *Game) tickHunt(dt float64) {
@@ -161,8 +182,10 @@ func (g *Game) tickHunt(dt float64) {
 	if a.pathIdx >= len(a.path) {
 		last := a.lastKnown.Cell()
 		if a.Pos.Cell() == last {
-			a.searchesLeft = searchRounds
-			a.dwell = arriveDwell
+			a.searchesLeft = g.searchRoundsLearned()
+			a.dwell = g.searchDwell()
+			a.ventChecked = false
+			g.coldTrail()
 			g.setAlienState(StateSearch)
 			return
 		}
@@ -191,20 +214,28 @@ func (g *Game) arrive() {
 	a := &g.Alien
 	switch a.State {
 	case StateInvestigate:
-		a.searchesLeft = searchRounds
-		a.dwell = arriveDwell
+		a.searchesLeft = g.searchRoundsLearned()
+		a.dwell = g.searchDwell()
+		a.ventChecked = false
 		g.setAlienState(StateSearch)
 	case StateSearch:
 		if a.searchesLeft > 0 {
 			a.searchesLeft--
-			g.setAlienTarget(g.searchPoint(a.Pos.Cell()))
-			a.dwell = arriveDwell / 2
+			target := g.searchPoint(a.Pos.Cell())
+			if !a.ventChecked {
+				a.ventChecked = true
+				if m, ok := g.ventCheckPoint(); ok {
+					target = m
+				}
+			}
+			g.setAlienTarget(target)
+			a.dwell = g.searchDwell() / 2
 			return
 		}
 		g.setAlienState(StatePatrol)
 		g.setAlienTarget(g.patrolPoint())
 	case StatePatrol:
-		a.dwell = arriveDwell / 2
+		a.dwell = g.searchDwell() / 2
 		g.setAlienTarget(g.patrolPoint())
 	}
 }
@@ -228,11 +259,14 @@ func (g *Game) patrolPoint() world.Coord {
 	if len(l.Rooms) == 0 {
 		return g.Alien.Pos.Cell()
 	}
-	// Prefer a room the director has hinted at; otherwise roam anywhere but the
-	// room the hunter is already in.
+	// Prefer a room the director has hinted at, then the habits the hunter has
+	// learned; otherwise roam anywhere but the room it is already in.
 	if g.director.hintValid {
 		g.director.hintValid = false
 		return g.director.hint
+	}
+	if c, ok := g.hotRoom(); ok && g.rng.Float64() < 0.5 {
+		return c
 	}
 	cur := l.RoomAt(g.Alien.Pos.Cell())
 	for range 8 {

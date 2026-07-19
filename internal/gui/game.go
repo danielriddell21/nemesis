@@ -30,6 +30,7 @@ type Game struct {
 
 	baseSeed int64
 	runIndex int
+	carried  sim.Learned
 	events   []telemetry.Event
 	now      float64
 	recorded bool
@@ -77,7 +78,7 @@ func (g *Game) startRun() error {
 		return fmt.Errorf("generate level: %w", err)
 	}
 	fmt.Printf("nemesis — run %d, seed %d\n", g.runIndex+1, g.runSeed())
-	g.sim = sim.New(level, sim.WithObserver(telemetry.NewBus(g)))
+	g.sim = sim.New(level, sim.WithObserver(telemetry.NewBus(g)), sim.WithLearned(g.carried))
 	g.recorded = false
 	g.events = g.events[:0]
 	g.overlay.Post("BRING THE GENERATORS ONLINE - THEN THE AIRLOCK", 240, hud.Notice)
@@ -98,6 +99,9 @@ func (g *Game) Update() error {
 	if g.sim.Dead() || g.sim.Escaped() {
 		g.finishRun()
 		if inpututil.IsKeyJustPressed(ebiten.KeyEnter) || inpututil.IsKeyJustPressed(ebiten.KeyR) {
+			// The hunter remembers: what it learned about this prey survives
+			// into the next station.
+			g.carried = g.sim.Learned()
 			g.runIndex++
 			if err := g.startRun(); err != nil {
 				return err
@@ -203,6 +207,13 @@ func snapshot(s *sim.Game) StateMsg {
 	for _, c := range path {
 		cells = append(cells, [2]int{c.X, c.Y})
 	}
+	ping, vent, search := s.LearnTiers()
+	var hot [][2]int
+	for i, h := range s.RoomHeat() {
+		if h > 0.5 {
+			hot = append(hot, [2]int{i, int(h * 100)})
+		}
+	}
 	return StateMsg{
 		Tick:       s.TickCount(),
 		PlayerX:    s.Player.Pos.X,
@@ -218,6 +229,10 @@ func snapshot(s *sim.Game) StateMsg {
 		Done:       s.ObjectivesDone(),
 		Total:      s.ObjectivesTotal(),
 		Unlocked:   s.ExitUnlocked(),
+		PingTier:   ping,
+		VentTier:   vent,
+		SearchTier: search,
+		Hot:        hot,
 		Dead:       s.Dead(),
 		Escaped:    s.Escaped(),
 	}

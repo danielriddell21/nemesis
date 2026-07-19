@@ -3,6 +3,7 @@ package sim
 type noiseEvent struct {
 	at     Vec2
 	radius float64
+	kind   ObservationKind
 }
 
 func (n *noiseEvent) merge(o noiseEvent) {

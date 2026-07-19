@@ -39,6 +39,18 @@ func TestSnapshotMirrorsSim(t *testing.T) {
 	}
 }
 
+func TestSnapshotCarriesLearning(t *testing.T) {
+	l, err := world.Generate(world.Config{Width: 32, Height: 24, Seed: 9})
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := sim.New(l, sim.WithLearned(sim.Learned{Pings: 9, Creaks: 11, Cold: 2}))
+	snap := snapshot(s)
+	if snap.PingTier != 2 || snap.VentTier != 2 || snap.SearchTier != 2 {
+		t.Errorf("tiers = %d/%d/%d, want 2/2/2", snap.PingTier, snap.VentTier, snap.SearchTier)
+	}
+}
+
 func TestNoticeFiltersByEarshot(t *testing.T) {
 	s := testSim(t)
 	near := telemetry.Event{Type: "alien-creak", X: s.Player.Pos.Cell().X + 2, Y: s.Player.Pos.Cell().Y}

@@ -69,19 +69,19 @@ func (g *Game) tickPlayer(in Input, dt float64) noiseEvent {
 		p.stepAcc = 0
 		return noiseEvent{}
 	}
-	// Footsteps land on a cadence proportional to speed; each one is a noise
-	// event the hunter can hear and the audio layer can play.
-	p.stepAcc += speed * dt
-	if p.stepAcc < stepLength {
-		return noiseEvent{at: p.Pos, radius: loud * continuousNoiseScale}
-	}
-	p.stepAcc -= stepLength
 	kind := ObsStep
 	if p.InVent(g.World) {
 		kind = ObsVentCreak
 	}
+	// Footsteps land on a cadence proportional to speed; each one is a noise
+	// event the hunter can hear and the audio layer can play.
+	p.stepAcc += speed * dt
+	if p.stepAcc < stepLength {
+		return noiseEvent{at: p.Pos, radius: loud * continuousNoiseScale, kind: kind}
+	}
+	p.stepAcc -= stepLength
 	g.observe(Observation{Kind: kind, At: p.Pos.Cell(), Radius: loud})
-	return noiseEvent{at: p.Pos, radius: loud}
+	return noiseEvent{at: p.Pos, radius: loud, kind: kind}
 }
 
 const (
@@ -111,14 +111,14 @@ func (g *Game) interact(noise *noiseEvent) {
 		if !g.World.DoorOpen(c) {
 			g.World.OpenDoor(c)
 			g.observe(Observation{Kind: ObsDoorOpen, At: c, Radius: doorNoise})
-			noise.merge(noiseEvent{at: cellCenter(c), radius: doorNoise})
+			noise.merge(noiseEvent{at: cellCenter(c), radius: doorNoise, kind: ObsDoorOpen})
 		}
 	case world.TileConsole:
 		if !g.activated[c] {
 			g.activated[c] = true
 			g.director.escalate(g)
 			g.observe(Observation{Kind: ObsConsole, At: c, Radius: consoleNoise})
-			noise.merge(noiseEvent{at: cellCenter(c), radius: consoleNoise})
+			noise.merge(noiseEvent{at: cellCenter(c), radius: consoleNoise, kind: ObsConsole})
 		}
 	}
 }

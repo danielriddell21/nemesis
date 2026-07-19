@@ -17,6 +17,7 @@ const (
 	ObsAlienSeen
 	ObsAlienCreak
 	ObsDirectorNudge
+	ObsAlienLearn
 )
 
 func (k ObservationKind) String() string {
@@ -45,6 +46,29 @@ func (k ObservationKind) String() string {
 		return "alien-creak"
 	case ObsDirectorNudge:
 		return "director-nudge"
+	case ObsAlienLearn:
+		return "alien-learn"
+	default:
+		return "unknown"
+	}
+}
+
+type LearnKind uint8
+
+const (
+	LearnPing LearnKind = iota
+	LearnVent
+	LearnSearch
+)
+
+func (k LearnKind) String() string {
+	switch k {
+	case LearnPing:
+		return "tracker"
+	case LearnVent:
+		return "vents"
+	case LearnSearch:
+		return "search"
 	default:
 		return "unknown"
 	}
@@ -57,6 +81,8 @@ type Observation struct {
 	Radius float64
 	State  AlienState
 	Target world.Coord
+	Learn  LearnKind
+	Tier   int
 }
 
 type Observer interface {

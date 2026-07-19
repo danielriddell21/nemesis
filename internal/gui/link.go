@@ -26,6 +26,10 @@ type StateMsg struct {
 	Menace     float64  `json:"menace"`
 	Done       int      `json:"done"`
 	Total      int      `json:"total"`
+	PingTier   int      `json:"lp,omitempty"`
+	VentTier   int      `json:"lv,omitempty"`
+	SearchTier int      `json:"ls,omitempty"`
+	Hot        [][2]int `json:"hot,omitempty"`
 	Unlocked   bool     `json:"unlocked,omitempty"`
 	Dead       bool     `json:"dead,omitempty"`
 	Escaped    bool     `json:"escaped,omitempty"`

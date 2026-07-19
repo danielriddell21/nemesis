@@ -53,6 +53,9 @@ func TestEventLines(t *testing.T) {
 		{sim.Observation{Kind: sim.ObsAlienHeard, Target: world.Coord{X: 2, Y: 3}}, "HUNTER HEARD NOISE AT 2 3"},
 		{sim.Observation{Kind: sim.ObsDirectorNudge, Target: world.Coord{X: 4, Y: 4}}, "DIRECTOR STEERS HUNT TO 4 4"},
 		{sim.Observation{Kind: sim.ObsEscape}, "PREY ESCAPED THROUGH THE AIRLOCK"},
+		{sim.Observation{Kind: sim.ObsAlienLearn, Learn: sim.LearnPing, Tier: 2}, "HUNTER LEARNED TRACKER II"},
+		{sim.Observation{Kind: sim.ObsAlienLearn, Learn: sim.LearnVent, Tier: 1}, "HUNTER LEARNED VENTS I"},
+		{sim.Observation{Kind: sim.ObsAlienLearn, Learn: sim.LearnSearch, Tier: 4}, "HUNTER LEARNED SEARCH IV"},
 	}
 	for _, tt := range tests {
 		if got := FromObservation(tt.obs).Line(); got != tt.want {

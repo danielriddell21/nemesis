@@ -52,6 +52,7 @@ type Game struct {
 	director director
 
 	activated map[world.Coord]bool
+	learning  learning
 	escaped   bool
 	dead      bool
 
@@ -68,6 +69,12 @@ func WithObserver(o Observer) Option {
 	}
 }
 
+func WithLearned(l Learned) Option {
+	return func(g *Game) {
+		g.learning.Learned = l
+	}
+}
+
 func New(l *world.Level, opts ...Option) *Game {
 	u := uint64(l.Seed)
 	g := &Game{
@@ -80,6 +87,7 @@ func New(l *world.Level, opts ...Option) *Game {
 		rng:       rand.New(rand.NewPCG(u^0xa5a5a5a5, u+0x9e3779b97f4a7c15)),
 		observer:  nopObserver{},
 		activated: make(map[world.Coord]bool),
+		learning:  newLearning(Learned{}, len(l.Rooms)),
 		director:  newDirector(),
 	}
 	for _, opt := range opts {
@@ -113,6 +121,7 @@ func (g *Game) Tick(in Input, dt float64) {
 	g.tick++
 	g.elapsed += dt
 
+	g.learning.decay(dt)
 	noise := g.tickPlayer(in, dt)
 	g.tickTracker(in, dt, &noise)
 	if in.Use && !g.useLatch {
