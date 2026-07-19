@@ -60,3 +60,7 @@ func (g *Game) tickTracker(in Input, dt float64, noise *noiseEvent) {
 		Dist:    dist,
 	}
 }
+
+func PingInterval() float64 { return pingInterval }
+
+func TrackerRange() float64 { return trackerRange }
