@@ -1,0 +1,15 @@
+# Binaries
+/bin/
+/dist/
+/nemesis
+*.exe
+
+# Test / coverage artifacts
+*.out
+coverage.*
+
+# Editor / OS noise
+.DS_Store
+*.swp
+.idea/
+.vscode/
