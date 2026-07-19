@@ -102,3 +102,12 @@ func (b *Bus) Observe(o sim.Observation) {
 func (b *Bus) Recent() []Event {
 	return b.recent
 }
+
+func (e Event) Kind() (sim.ObservationKind, bool) {
+	for k := sim.ObsStep; k <= sim.ObsDirectorNudge; k++ {
+		if k.String() == e.Type {
+			return k, true
+		}
+	}
+	return 0, false
+}
