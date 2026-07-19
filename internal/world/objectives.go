@@ -53,21 +53,24 @@ func placeConsoles(l *Level, g *rng, rooms []Room, want int) {
 	// requirement if the map is too small to satisfy it.
 	minSpread := (l.Width + l.Height) / 8
 	for spread := minSpread; spread >= 0 && len(l.Consoles) < want; spread /= 2 {
-		for _, ri := range order {
-			if len(l.Consoles) >= want {
-				break
-			}
-			c := rooms[ri].Center()
-			if !spacedFrom(l.Consoles, c, spread) {
-				continue
-			}
-			if m, ok := consoleSite(l, g, rooms[ri]); ok {
-				l.set(m.X, m.Y, TileConsole)
-				l.Consoles = append(l.Consoles, m)
-			}
-		}
+		mountConsoles(l, g, rooms, order, want, spread)
 		if spread == 0 {
 			break
+		}
+	}
+}
+
+func mountConsoles(l *Level, g *rng, rooms []Room, order []int, want, spread int) {
+	for _, ri := range order {
+		if len(l.Consoles) >= want {
+			return
+		}
+		if !spacedFrom(l.Consoles, rooms[ri].Center(), spread) {
+			continue
+		}
+		if m, ok := consoleSite(l, g, rooms[ri]); ok {
+			l.set(m.X, m.Y, TileConsole)
+			l.Consoles = append(l.Consoles, m)
 		}
 	}
 }

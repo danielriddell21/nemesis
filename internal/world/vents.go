@@ -103,30 +103,33 @@ func wallComponents(l *Level) map[Coord]int {
 			if _, ok := comp[c]; ok {
 				continue
 			}
-			// Flood this component.
-			comp[c] = next
-			queue := []Coord{c}
-			for len(queue) > 0 {
-				cur := queue[0]
-				queue = queue[1:]
-				for _, n := range neighbors4(cur) {
-					if n.X < 1 || n.Y < 1 || n.X >= l.Width-1 || n.Y >= l.Height-1 {
-						continue
-					}
-					if l.At(n.X, n.Y) != TileWall {
-						continue
-					}
-					if _, ok := comp[n]; ok {
-						continue
-					}
-					comp[n] = next
-					queue = append(queue, n)
-				}
-			}
+			floodComponent(l, comp, c, next)
 			next++
 		}
 	}
 	return comp
+}
+
+func floodComponent(l *Level, comp map[Coord]int, start Coord, id int) {
+	comp[start] = id
+	queue := []Coord{start}
+	for len(queue) > 0 {
+		cur := queue[0]
+		queue = queue[1:]
+		for _, n := range neighbors4(cur) {
+			if n.X < 1 || n.Y < 1 || n.X >= l.Width-1 || n.Y >= l.Height-1 {
+				continue
+			}
+			if l.At(n.X, n.Y) != TileWall {
+				continue
+			}
+			if _, ok := comp[n]; ok {
+				continue
+			}
+			comp[n] = id
+			queue = append(queue, n)
+		}
+	}
 }
 
 func roomPerimeter(r Room) []Coord {
