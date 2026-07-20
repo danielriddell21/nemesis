@@ -79,21 +79,40 @@ Like the xenomorph, the hunter doesn't get faster with time — it gets
   whenever it searches an area.
 - **Search craft.** Every hunt that goes cold makes future searches longer
   and its sweeps between points faster, up to a cap.
+- **Decoy wisdom.** Every noisemaker it walks up to and finds no prey beside
+  teaches it the trick. Fool it enough and the chirp stops working — it no
+  longer breaks off to chase a decoy.
+- **Locker sense.** The first times it sees you duck into a recess while it is
+  hunting or searching, it takes note; after that it detours to check the
+  nearest locker whenever it searches an area.
 - **Hot zones.** Every detection — sight or sound — deposits heat in the room
   it happened in. Patrols drift toward the hottest rooms; the heat bleeds
   away over a minute or so if you break your habits.
 
-Learning survives the run: die and press Enter, and the next station is
-generated fresh — but the same hunter steps into it, remembering everything
-it learned about you. Only a fresh launch of the game gets you a naive one.
-The visualiser shows the learned tiers, logs each unlock in the trigger feed
-("HUNTER LEARNED TRACKER II"), and tints the hot rooms red.
+Learning carries down the descent: clear a deck and the next is generated
+fresh — but the same hunter steps into it, warier and quicker and remembering
+everything it learned about you. A catch ends the run; only then does the next
+run get a naive hunter. The visualiser shows the learned tiers (two rows now:
+tracker/vents/search and decoys/lockers), logs each unlock in the trigger feed
+("HUNTER LEARNED TRACKER II"), draws its vision cone, and tints the hot rooms
+red.
 
-## The tracker
+## Your tools
 
-The motion tracker is the one tool, and it obeys the fiction: it senses
-motion, not bodies. Each ping paints at most one blip — bearing and distance
-to the hunter, but only if it was moving at that instant — and the blip fades
-until the next ping. A still hunter is invisible. The ping itself is a real
-sound in the simulation, so checking the scope with the hunter close is a
-gamble, and raising it caps you to a creep.
+Everything you carry obeys the same fiction the hunter does — sound is sound,
+sight is sight:
+
+- **The motion tracker** senses motion, not bodies. Each ping paints at most
+  one blip — bearing and distance to the hunter, but only if it was moving at
+  that instant — fading until the next ping. A still hunter is invisible. The
+  ping itself is a real sound, so checking the scope with the hunter close is a
+  gamble, and raising it caps you to a creep.
+- **Noisemaker decoys** are thrown: they fly forward, land, and chirp on a
+  cadence, and the hunter treats the chirp as any other loud noise — it breaks
+  off to investigate. Reaching one and finding nothing is exactly what teaches
+  it to stop falling for them, so a decoy is a resource, not a repeatable
+  trick.
+- **Lockers** are wall recesses you step into and hide. Hidden, you make no
+  noise and cannot be seen — but you cannot move, and if the hunter reaches
+  your locker (which its locker-sense will make it do, once learned) it wrenches
+  the door open and that is that.

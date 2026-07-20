@@ -41,11 +41,16 @@ How to read it:
 - **The trigger feed** on the right is the live event stream — the same
   telemetry the game's audio and HUD consume: `VENT CREAK AT 12 4`,
   `HUNTER SPOTTED PREY AT 41 23`, `PREY KILLED AT 41 23`, `RUN START`.
-- **Learning** is the LEARNED row and the red-tinted hot rooms. Tracker pings
-  and vent creaks the hunter hears, and hunts that go cold, push the tiers up;
-  heat marks the rooms where it keeps detecting prey and pulls its patrols
-  there. Watch the row survive `RUN START`: a new station is generated, but
-  the same hunter walks into it remembering everything.
+- **The vision cone** fans out from the hunter along its facing, coloured by
+  its state and reaching as far as it can currently see (shorter in the dark).
+  Anything moving inside it with a clear line is spotted.
+- **Decoys** show as a pale ring pulsing at the thrown noisemaker's position,
+  with `DECOY CHIRPS` in the feed; the hunter treats it as noise and investigates.
+- **Learning** is the two LEARNED rows and the red-tinted hot rooms. Pings,
+  creaks, cold trails, decoys it walks up to, and lockers it sees you use all
+  push the tiers up; heat marks the rooms where it keeps detecting prey. Watch
+  the rows survive `RUN START`: a new deck is generated, but the same hunter
+  walks into it — deeper and warier — remembering everything.
 
 ## In the corridors
 
@@ -68,8 +73,9 @@ contact, with the chirp audible to more than just you.
 
 The generator's range across six seeds: BSP rooms joined by corridors, the
 brown vent ducts threading the wall mass between them, bulkhead doors
-(orange), objective consoles (yellow), spawn (green) and the airlock (red).
-Every layout is deterministic from its seed and guaranteed traversable.
+(orange), objective consoles (yellow), lockers (cyan), spawn (green) and the
+airlock (red). Every layout is deterministic from its seed and guaranteed
+traversable.
 
 ## The visualiser at rest
 

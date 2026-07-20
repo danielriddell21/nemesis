@@ -25,11 +25,12 @@ sight.
 
 2. **`internal/sim` — simulation.** The whole game, headless: player movement
    in three gaits with axis-sliding collision, the noise model, doors and
-   objectives, the motion tracker, and the hunter AI (see [ai.md](ai.md)).
-   State advances one fixed step at a time via an explicit `Tick`. Everything
-   the simulation notices is emitted through a single `Observer` seam as
-   structured observations — footsteps, creaks, state changes, director
-   nudges — which is how telemetry, audio and the HUD hear about the world
+   objectives, the motion tracker, thrown noisemaker decoys, locker hiding,
+   per-deck difficulty, and the hunter AI (see [ai.md](ai.md)). State advances
+   one fixed step at a time via an explicit `Tick`. Everything the simulation
+   notices is emitted through a single `Observer` seam as structured
+   observations — footsteps, creaks, state changes, director nudges, learning
+   milestones — which is how telemetry, audio and the HUD hear about the world
    without the sim knowing they exist.
 
 3. **`internal/render` — rendering.** A pure-CPU column raycaster (DDA over
@@ -55,8 +56,11 @@ A few supporting packages sit alongside these, all pure and observing inward:
 
 The Ebiten front-end lives in `internal/gui` — the only package that imports
 Ebiten — behind the family `Run(Config)`/`Available()` seam. It hosts two
-window roles: the **game** (input, fixed-step sim ticks, frame upload, audio,
-records) and the **visualiser**, a top-down view of the hunter's mind: the
+window roles: the **game** and the **visualiser**. The game runs a small
+state machine — title, playing, paused, settings — over a multi-deck campaign
+(input, fixed-step sim ticks, frame upload, positional audio), persisting
+player settings and run history (deepest deck, fastest clear) to disk between
+sessions. The **visualiser** is a top-down view of the hunter's mind: the
 real map, its state and current A* path, the director's nudges, noise ripples
 and the trigger feed. The two are separate processes: `internal/cli` owns a
 small hub that spawns the visualiser as a child of the same binary and
