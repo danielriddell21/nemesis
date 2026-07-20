@@ -74,7 +74,12 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libgl1-mesa-dev libxcursor-dev libxi-dev \
-            libxinerama-dev libxrandr-dev libxxf86vm-dev libasound2-dev pkg-config
+            libxinerama-dev libxrandr-dev libxxf86vm-dev libasound2-dev pkg-config xvfb
+      - name: Start virtual display
+        # Gremlins runs go test itself; the gui package needs a display on import.
+        run: |
+          Xvfb :99 -screen 0 1280x1024x24 >/dev/null 2>&1 &
+          echo "DISPLAY=:99" >> "$GITHUB_ENV"
       - uses: go-gremlins/gremlins-action@v1
         with:
           args: --config .gremlins.yaml
