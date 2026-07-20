@@ -16,6 +16,8 @@ type Config struct {
 
 	Consoles int
 
+	Lockers int
+
 	MaxAttempts int
 }
 
@@ -31,6 +33,12 @@ func (c Config) normalized() Config {
 	}
 	if c.Consoles > 5 {
 		c.Consoles = 5
+	}
+	if c.Lockers == 0 {
+		c.Lockers = 4
+	}
+	if c.Lockers < 0 {
+		c.Lockers = 0
 	}
 	if c.MaxAttempts <= 0 {
 		c.MaxAttempts = 32
@@ -68,6 +76,7 @@ func generateOnce(cfg Config, seed int64) *Level {
 	placeDoors(l, g)
 	placeSpawnAndExit(l, rooms)
 	placeConsoles(l, g, rooms, cfg.Consoles)
+	placeLockers(l, g, rooms, cfg.Lockers)
 	assignLight(l, g, rooms)
 	return l
 }

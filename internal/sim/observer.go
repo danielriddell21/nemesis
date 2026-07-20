@@ -10,6 +10,8 @@ const (
 	ObsDoorOpen
 	ObsConsole
 	ObsTrackerPing
+	ObsDecoy
+	ObsHide
 	ObsEscape
 	ObsDeath
 	ObsAlienState
@@ -20,37 +22,29 @@ const (
 	ObsAlienLearn
 )
 
+var obsNames = [...]string{
+	ObsStep:          "step",
+	ObsVentCreak:     "vent-creak",
+	ObsDoorOpen:      "door",
+	ObsConsole:       "console",
+	ObsTrackerPing:   "ping",
+	ObsDecoy:         "decoy",
+	ObsHide:          "hide",
+	ObsEscape:        "escape",
+	ObsDeath:         "death",
+	ObsAlienState:    "alien-state",
+	ObsAlienHeard:    "alien-heard",
+	ObsAlienSeen:     "alien-seen",
+	ObsAlienCreak:    "alien-creak",
+	ObsDirectorNudge: "director-nudge",
+	ObsAlienLearn:    "alien-learn",
+}
+
 func (k ObservationKind) String() string {
-	switch k {
-	case ObsStep:
-		return "step"
-	case ObsVentCreak:
-		return "vent-creak"
-	case ObsDoorOpen:
-		return "door"
-	case ObsConsole:
-		return "console"
-	case ObsTrackerPing:
-		return "ping"
-	case ObsEscape:
-		return "escape"
-	case ObsDeath:
-		return "death"
-	case ObsAlienState:
-		return "alien-state"
-	case ObsAlienHeard:
-		return "alien-heard"
-	case ObsAlienSeen:
-		return "alien-seen"
-	case ObsAlienCreak:
-		return "alien-creak"
-	case ObsDirectorNudge:
-		return "director-nudge"
-	case ObsAlienLearn:
-		return "alien-learn"
-	default:
-		return "unknown"
+	if int(k) < len(obsNames) && obsNames[k] != "" {
+		return obsNames[k]
 	}
+	return "unknown"
 }
 
 type LearnKind uint8
@@ -59,6 +53,8 @@ const (
 	LearnPing LearnKind = iota
 	LearnVent
 	LearnSearch
+	LearnDecoy
+	LearnLocker
 )
 
 func (k LearnKind) String() string {
@@ -69,6 +65,10 @@ func (k LearnKind) String() string {
 		return "vents"
 	case LearnSearch:
 		return "search"
+	case LearnDecoy:
+		return "decoys"
+	case LearnLocker:
+		return "lockers"
 	default:
 		return "unknown"
 	}

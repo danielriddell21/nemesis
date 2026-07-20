@@ -25,7 +25,7 @@ func assignLight(l *Level, g *rng, rooms []Room) {
 		switch t {
 		case TileVent:
 			l.Light[i] = ventLight
-		case TileFloor, TileDoor, TileSpawn, TileExit:
+		case TileFloor, TileDoor, TileSpawn, TileExit, TileLocker:
 			l.Light[i] = corridorLight
 		}
 	}

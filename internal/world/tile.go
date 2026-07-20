@@ -10,11 +10,12 @@ const (
 	TileSpawn
 	TileExit
 	TileConsole
+	TileLocker
 )
 
 func (t TileType) Walkable() bool {
 	switch t {
-	case TileFloor, TileDoor, TileVent, TileSpawn, TileExit:
+	case TileFloor, TileDoor, TileVent, TileSpawn, TileExit, TileLocker:
 		return true
 	default:
 		return false
@@ -35,6 +36,8 @@ func (t TileType) Rune() rune {
 		return 'E'
 	case TileConsole:
 		return '!'
+	case TileLocker:
+		return 'H'
 	default:
 		return '.'
 	}

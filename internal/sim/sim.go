@@ -37,6 +37,8 @@ type Input struct {
 	Mode            MoveMode
 	Tracker         bool
 	Use             bool
+	Hide            bool
+	Throw           bool
 }
 
 type Game struct {
@@ -47,16 +49,21 @@ type Game struct {
 
 	tick     uint64
 	elapsed  float64
+	depth    int
+	threat   float64
 	rng      *rand.Rand
 	observer Observer
 	director director
 
 	activated map[world.Coord]bool
 	learning  learning
+	decoy     Decoy
 	escaped   bool
 	dead      bool
 
-	useLatch bool
+	useLatch   bool
+	hideLatch  bool
+	throwLatch bool
 }
 
 type Option func(*Game)
@@ -75,15 +82,25 @@ func WithLearned(l Learned) Option {
 	}
 }
 
+func WithDepth(d int) Option {
+	return func(g *Game) {
+		if d > 0 {
+			g.depth = d
+		}
+	}
+}
+
 func New(l *world.Level, opts ...Option) *Game {
 	u := uint64(l.Seed)
 	g := &Game{
 		World: NewWorld(l),
 		Player: Player{
-			Pos:   cellCenter(l.Spawn),
-			Angle: spawnFacing(l),
+			Pos:    cellCenter(l.Spawn),
+			Angle:  spawnFacing(l),
+			Decoys: startingDecoys,
 		},
 		Tracker:   newTracker(),
+		threat:    1,
 		rng:       rand.New(rand.NewPCG(u^0xa5a5a5a5, u+0x9e3779b97f4a7c15)),
 		observer:  nopObserver{},
 		activated: make(map[world.Coord]bool),
@@ -93,8 +110,20 @@ func New(l *world.Level, opts ...Option) *Game {
 	for _, opt := range opts {
 		opt(g)
 	}
+	g.applyDepth()
 	g.Alien = newAlien(alienStart(l))
 	return g
+}
+
+func (g *Game) applyDepth() {
+	if g.depth <= 0 {
+		return
+	}
+	// Deeper decks wake the hunter sooner, start it warier, and quicken it a
+	// touch — the station gets less forgiving the further you descend.
+	g.threat = 1 + 0.04*float64(g.depth)
+	g.director.wake = math.Max(6, lurkTime-float64(g.depth)*4)
+	g.director.aggression = math.Min(0.5, 0.1*float64(g.depth))
 }
 
 func spawnFacing(l *world.Level) float64 {
@@ -124,12 +153,16 @@ func (g *Game) Tick(in Input, dt float64) {
 	g.learning.decay(dt)
 	noise := g.tickPlayer(in, dt)
 	g.tickTracker(in, dt, &noise)
-	if in.Use && !g.useLatch {
+	g.tickHide(in)
+	if in.Use && !g.useLatch && !g.Player.Hidden {
 		g.interact(&noise)
 	}
 	g.useLatch = in.Use
+	g.tickThrow(in)
+	noise.merge(g.tickDecoy(dt))
 
 	g.tickAlien(dt, noise)
+	g.checkDecoyReached()
 	g.director.tick(g, dt)
 	g.checkKill()
 	g.checkEscape()
@@ -163,11 +196,29 @@ func (g *Game) checkKill() {
 		return
 	}
 	d := g.Alien.Pos.Sub(g.Player.Pos).Len()
+	if g.Player.Hidden {
+		// A locker only hides you until the hunter reaches it and wrenches the
+		// door open.
+		if d < lockerBreach {
+			g.die()
+		}
+		return
+	}
 	if d < killRange && g.lineOfSight(g.Alien.Pos, g.Player.Pos) {
-		g.dead = true
-		g.observe(Observation{Kind: ObsDeath, At: g.Player.Pos.Cell()})
+		g.die()
 	}
 }
+
+func (g *Game) die() {
+	g.dead = true
+	g.observe(Observation{Kind: ObsDeath, At: g.Player.Pos.Cell()})
+}
+
+func (g *Game) Depth() int { return g.depth }
+
+func (g *Game) VisionRange() float64 { return g.effectiveVisionRange() }
+
+func (g *Game) VisionFOV() float64 { return visionFOV }
 
 func (g *Game) checkEscape() {
 	if g.escaped || g.dead {

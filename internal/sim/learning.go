@@ -7,19 +7,26 @@ const (
 	pingTier2     = 8
 	creakTier1    = 4
 	creakTier2    = 10
+	decoyTier1    = 2
+	decoyTier2    = 5
+	lockerTier1   = 2
+	lockerTier2   = 5
 	maxSearchTier = 4
 
-	pingRushRange  = 9.0
-	ventCheckRange = 10.0
+	pingRushRange    = 9.0
+	ventCheckRange   = 10.0
+	lockerCheckRange = 12.0
 
 	heatDeposit  = 1.0
 	heatHalfLife = 45.0
 )
 
 type Learned struct {
-	Pings  int `json:"pings"`
-	Creaks int `json:"creaks"`
-	Cold   int `json:"cold"`
+	Pings   int `json:"pings"`
+	Creaks  int `json:"creaks"`
+	Cold    int `json:"cold"`
+	Decoys  int `json:"decoys"`
+	Lockers int `json:"lockers"`
 }
 
 type learning struct {
@@ -60,6 +67,28 @@ func (l *learning) searchTier() int {
 	return l.Cold
 }
 
+func (l *learning) decoyTier() int {
+	switch {
+	case l.Decoys >= decoyTier2:
+		return 2
+	case l.Decoys >= decoyTier1:
+		return 1
+	default:
+		return 0
+	}
+}
+
+func (l *learning) lockerTier() int {
+	switch {
+	case l.Lockers >= lockerTier2:
+		return 2
+	case l.Lockers >= lockerTier1:
+		return 1
+	default:
+		return 0
+	}
+}
+
 func (l *learning) decay(dt float64) {
 	k := 1 - dt/heatHalfLife*0.693
 	if k < 0 {
@@ -94,6 +123,25 @@ func (g *Game) coldTrail() {
 	g.noteLearn(LearnSearch, g.learning.searchTier(), g.learning.Cold <= maxSearchTier)
 }
 
+func (g *Game) reachedDecoy() {
+	// The hunter walked up to the chirping gadget and found no prey: another
+	// lesson that the sound is a trick.
+	g.learning.Decoys++
+	g.noteLearn(LearnDecoy, g.learning.decoyTier(), g.learning.Decoys == decoyTier1 || g.learning.Decoys == decoyTier2)
+}
+
+func (g *Game) learnLocker() {
+	// The hunter noticed the prey duck into a recess: it will start checking
+	// them when it searches.
+	g.learning.Lockers++
+	g.noteLearn(LearnLocker, g.learning.lockerTier(), g.learning.Lockers == lockerTier1 || g.learning.Lockers == lockerTier2)
+}
+
+func (g *Game) decoyIgnored() bool {
+	// A hunter fooled enough times knows the noisemaker for what it is.
+	return g.learning.decoyTier() >= 2
+}
+
 func (g *Game) noteLearn(what LearnKind, tier int, unlocked bool) {
 	if unlocked {
 		g.observe(Observation{Kind: ObsAlienLearn, At: g.Alien.Pos.Cell(), Learn: what, Tier: tier})
@@ -106,6 +154,10 @@ func (g *Game) Learned() Learned {
 
 func (g *Game) LearnTiers() (ping, vent, search int) {
 	return g.learning.pingTier(), g.learning.ventTier(), g.learning.searchTier()
+}
+
+func (g *Game) LearnExtras() (decoy, locker int) {
+	return g.learning.decoyTier(), g.learning.lockerTier()
 }
 
 func (g *Game) RoomHeat() []float64 {
@@ -135,6 +187,21 @@ func (g *Game) ventCheckPoint() (world.Coord, bool) {
 	for _, m := range g.World.Level.VentMouths {
 		if d := cellCenter(m).Sub(g.Alien.Pos).Len(); d < bestD {
 			best, bestD, found = m, d, true
+		}
+	}
+	return best, found
+}
+
+func (g *Game) lockerCheckPoint() (world.Coord, bool) {
+	// A hunter that has learned the prey hides checks the nearest recess while
+	// searching an area.
+	if g.learning.lockerTier() == 0 {
+		return world.Coord{}, false
+	}
+	best, bestD, found := world.Coord{}, lockerCheckRange, false
+	for _, c := range g.World.Level.Lockers {
+		if d := cellCenter(c).Sub(g.Alien.Pos).Len(); d < bestD {
+			best, bestD, found = c, d, true
 		}
 	}
 	return best, found

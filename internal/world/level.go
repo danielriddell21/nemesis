@@ -24,6 +24,7 @@ type Level struct {
 	Spawn, Exit   Coord
 	Rooms         []Room
 	Consoles      []Coord
+	Lockers       []Coord
 	VentMouths    []Coord
 	Light         []float64
 	Flicker       []bool

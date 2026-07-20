@@ -22,7 +22,8 @@ const (
 	pingNoise    = 5.0
 	consoleNoise = 12.0
 
-	killRange = 0.7
+	killRange    = 0.7
+	lockerBreach = 1.1
 )
 
 type Player struct {
@@ -30,6 +31,8 @@ type Player struct {
 	Angle  float64
 	Moving bool
 	Mode   MoveMode
+	Hidden bool
+	Decoys int
 
 	stepAcc float64
 }
@@ -43,8 +46,19 @@ func (p Player) InVent(w *World) bool {
 	return w.Level.At(c.X, c.Y) == world.TileVent
 }
 
+func (p Player) OnLocker(w *World) bool {
+	c := p.Pos.Cell()
+	return w.Level.At(c.X, c.Y) == world.TileLocker
+}
+
 func (g *Game) tickPlayer(in Input, dt float64) noiseEvent {
 	p := &g.Player
+	if p.Hidden {
+		// Tucked into a locker: no movement, no footsteps, no telltale sound.
+		p.Moving = false
+		p.stepAcc = 0
+		return noiseEvent{}
+	}
 	p.Angle = normalizeAngle(p.Angle + in.Turn*turnSpeed*dt + in.TurnDelta)
 	p.Mode = in.Mode
 

@@ -15,6 +15,7 @@ func TestTileWalkable(t *testing.T) {
 		{TileVent, true},
 		{TileSpawn, true},
 		{TileExit, true},
+		{TileLocker, true},
 		{TileWall, false},
 		{TileConsole, false},
 	}

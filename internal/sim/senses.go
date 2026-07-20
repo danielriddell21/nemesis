@@ -58,6 +58,10 @@ func gridStep(origin, dir float64) (step int, tMax, tDelta float64) {
 }
 
 func (g *Game) alienSees() bool {
+	if g.Player.Hidden {
+		// Inside a locker there is nothing to see; only a breach finds you.
+		return false
+	}
 	to := g.Player.Pos.Sub(g.Alien.Pos)
 	dist := to.Len()
 	if dist > g.effectiveVisionRange() {
@@ -86,6 +90,10 @@ func (g *Game) effectiveVisionRange() float64 {
 
 func (g *Game) alienHears(n noiseEvent) bool {
 	if n.radius <= 0 {
+		return false
+	}
+	if n.kind == ObsDecoy && g.decoyIgnored() {
+		// A hunter that has seen through the trick no longer chases the chirp.
 		return false
 	}
 	radius := n.radius * (hearingFloor + g.director.aggression*0.5)

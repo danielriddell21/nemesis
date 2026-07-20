@@ -53,15 +53,16 @@ type Alien struct {
 	Target world.Coord
 	Moving bool
 
-	path         []world.Coord
-	pathIdx      int
-	repath       float64
-	dwell        float64
-	searchesLeft int
-	lastKnown    Vec2
-	tracked      bool
-	wasVent      bool
-	ventChecked  bool
+	path          []world.Coord
+	pathIdx       int
+	repath        float64
+	dwell         float64
+	searchesLeft  int
+	lastKnown     Vec2
+	tracked       bool
+	wasVent       bool
+	ventChecked   bool
+	lockerChecked bool
 }
 
 func newAlien(pos Vec2) Alien {
@@ -185,6 +186,7 @@ func (g *Game) tickHunt(dt float64) {
 			a.searchesLeft = g.searchRoundsLearned()
 			a.dwell = g.searchDwell()
 			a.ventChecked = false
+			a.lockerChecked = false
 			g.coldTrail()
 			g.setAlienState(StateSearch)
 			return
@@ -217,18 +219,12 @@ func (g *Game) arrive() {
 		a.searchesLeft = g.searchRoundsLearned()
 		a.dwell = g.searchDwell()
 		a.ventChecked = false
+		a.lockerChecked = false
 		g.setAlienState(StateSearch)
 	case StateSearch:
 		if a.searchesLeft > 0 {
 			a.searchesLeft--
-			target := g.searchPoint(a.Pos.Cell())
-			if !a.ventChecked {
-				a.ventChecked = true
-				if m, ok := g.ventCheckPoint(); ok {
-					target = m
-				}
-			}
-			g.setAlienTarget(target)
+			g.setAlienTarget(g.nextSearchTarget())
 			a.dwell = g.searchDwell() / 2
 			return
 		}
@@ -238,6 +234,25 @@ func (g *Game) arrive() {
 		a.dwell = g.searchDwell() / 2
 		g.setAlienTarget(g.patrolPoint())
 	}
+}
+
+func (g *Game) nextSearchTarget() world.Coord {
+	// The first sweeps of a search go to the places the hunter has learned prey
+	// disappears — the vents, then the lockers — before it fans out at random.
+	a := &g.Alien
+	if !a.ventChecked {
+		a.ventChecked = true
+		if m, ok := g.ventCheckPoint(); ok {
+			return m
+		}
+	}
+	if !a.lockerChecked {
+		a.lockerChecked = true
+		if m, ok := g.lockerCheckPoint(); ok {
+			return m
+		}
+	}
+	return g.searchPoint(a.Pos.Cell())
 }
 
 func (g *Game) searchPoint(near world.Coord) world.Coord {
@@ -335,7 +350,7 @@ func (g *Game) alienSpeed() float64 {
 	if g.Alien.InVent(g.World) {
 		s *= ventSpeedBoost
 	}
-	return s
+	return s * g.threat
 }
 
 func (g *Game) sweepFacing(dt float64) {
