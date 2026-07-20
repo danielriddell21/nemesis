@@ -66,7 +66,11 @@ func (s *session) start() error {
 	if err != nil {
 		return fmt.Errorf("generate: %w", err)
 	}
-	s.game = sim.New(l, sim.WithObserver(telemetry.NewBus(s)), sim.WithLearned(s.carried))
+	s.game = sim.New(l,
+		sim.WithObserver(telemetry.NewBus(s)),
+		sim.WithLearned(s.carried),
+		sim.WithDepth(s.run),
+	)
 	s.vis.Apply(gui.Msg{
 		Type: "hello",
 		Seed: l.Seed, Width: demoWidth, Height: demoHeight, Consoles: demoConsoles,

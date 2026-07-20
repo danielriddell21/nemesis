@@ -23,6 +23,7 @@ var montagePalette = map[world.TileType]color.RGBA{
 	world.TileSpawn:   {R: 120, G: 230, B: 160, A: 255},
 	world.TileExit:    {R: 190, G: 70, B: 60, A: 255},
 	world.TileConsole: {R: 200, G: 190, B: 90, A: 255},
+	world.TileLocker:  {R: 90, G: 180, B: 200, A: 255},
 }
 
 func stationsMontage(path string) error {

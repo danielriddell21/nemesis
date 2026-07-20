@@ -10,10 +10,17 @@ import (
 type pilot struct {
 	trackerClock float64
 	pulse        bool
+	throwTimer   float64
 }
 
 func (p *pilot) input(g *sim.Game, dt float64) sim.Input {
 	var in sim.Input
+	p.throwTimer -= dt
+	in.Hide = p.wantHide(g)
+	if g.Player.Hidden {
+		// Tucked away: keep still and wait the hunter out.
+		return in
+	}
 	target, fleeing := p.fleeTarget(g)
 	if !fleeing {
 		var ok bool
@@ -49,7 +56,36 @@ func (p *pilot) input(g *sim.Game, dt float64) sim.Input {
 	wantUse := (consoleClose && math.Abs(diff) < 0.3) || p.doorAhead(g, next)
 	in.Use = wantUse && p.pulse
 	in.Tracker = p.trackerRaised(g, dt)
+	in.Throw = p.wantThrow(g)
 	return in
+}
+
+func (p *pilot) wantHide(g *sim.Game) bool {
+	// Duck into a locker when the hunter is on the prowl and close; stay put
+	// until it has wandered well away, then slip out. Returning true only when
+	// intent and reality differ presses the toggle exactly once.
+	c := g.Player.Pos.Cell()
+	onLocker := g.World.Level.At(c.X, c.Y) == world.TileLocker
+	d := g.Alien.Pos.Sub(g.Player.Pos).Len()
+	hunted := g.Alien.State == sim.StateHunt || g.Alien.State == sim.StateSearch || g.Alien.State == sim.StateInvestigate
+	want := onLocker && hunted && d < 7
+	if g.Player.Hidden {
+		want = d < 11 // stay hidden while it lingers
+	}
+	return want != g.Player.Hidden
+}
+
+func (p *pilot) wantThrow(g *sim.Game) bool {
+	// Lob a noisemaker when the hunter is within earshot but not yet on top of
+	// us, on a cooldown so decoys stay meaningful.
+	if p.throwTimer > 0 || g.Player.Decoys == 0 || g.DecoyState().Active {
+		return false
+	}
+	if d := g.Alien.Pos.Sub(g.Player.Pos).Len(); d < 6 || d > 13 {
+		return false
+	}
+	p.throwTimer = 9
+	return true
 }
 
 func (p *pilot) gait(g *sim.Game) sim.MoveMode {
@@ -88,6 +124,9 @@ func (p *pilot) fleeTarget(g *sim.Game) (world.Coord, bool) {
 		if score > bestScore {
 			best, bestScore, found = c, score, true
 		}
+	}
+	for _, c := range l.Lockers {
+		consider(c, 9) // a locker to hide in is the best escape
 	}
 	for _, m := range l.VentMouths {
 		consider(m, 6)
