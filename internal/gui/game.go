@@ -7,6 +7,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 
+	iaudio "github.com/danielriddell21/nemesis/internal/audio"
 	"github.com/danielriddell21/nemesis/internal/hud"
 	"github.com/danielriddell21/nemesis/internal/render"
 	"github.com/danielriddell21/nemesis/internal/sim"
@@ -91,7 +92,7 @@ func (g *Game) Update() error {
 	g.setCursor()
 	switch g.state {
 	case stateTitle:
-		g.titleMenu.update()
+		g.playMenuSound(g.titleMenu.update())
 	case statePlaying:
 		return g.updatePlaying()
 	case statePaused:
@@ -152,18 +153,29 @@ func (g *Game) advanceOnEnter() {
 
 func (g *Game) updatePaused() {
 	if inpututil.IsKeyJustPressed(ebiten.KeyEscape) {
+		g.playMenuSound(soundSelect)
 		g.state = statePlaying
 		return
 	}
-	g.pauseMenu.update()
+	g.playMenuSound(g.pauseMenu.update())
 }
 
 func (g *Game) updateSettings() {
 	if inpututil.IsKeyJustPressed(ebiten.KeyEscape) {
+		g.playMenuSound(soundSelect)
 		g.leaveSettings()
 		return
 	}
-	g.settingsMenu.update()
+	g.playMenuSound(g.settingsMenu.update())
+}
+
+func (g *Game) playMenuSound(s menuSound) {
+	switch s {
+	case soundMove:
+		g.audio.PlayUI(iaudio.CueMenuMove)
+	case soundSelect:
+		g.audio.PlayUI(iaudio.CueMenuSelect)
+	}
 }
 
 func (g *Game) newRun() {
@@ -349,9 +361,20 @@ func (g *Game) Draw(screen *ebiten.Image) {
 }
 
 func (g *Game) drawMenuOverlay(screen *ebiten.Image, m *menu) {
-	g.canvas.dimFrom(g.lastFrame, 0.3)
-	m.draw(g.canvas)
+	g.composeMenu(m)
 	screen.WritePixels(g.canvas.pixels())
+}
+
+func (g *Game) composeMenu(m *menu) {
+	// Settings can be opened straight from the title, before any game frame
+	// exists to dim behind the menu; fall back to a solid backdrop so the menu
+	// does not draw over stale pixels.
+	if len(g.lastFrame) == 0 {
+		g.canvas.fill(menuBG)
+	} else {
+		g.canvas.dimFrom(g.lastFrame, 0.3)
+	}
+	m.draw(g.canvas)
 }
 
 func (g *Game) Layout(_, _ int) (int, int) {
