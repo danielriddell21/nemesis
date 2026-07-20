@@ -15,6 +15,22 @@ func testGameForMenus(t *testing.T) *Game {
 	return g
 }
 
+func TestMenuMoveSelWraps(t *testing.T) {
+	m := &menu{items: []menuItem{{}, {}, {}}}
+	m.moveSel(-1)
+	if m.sel != 2 {
+		t.Errorf("moving up from the top should wrap to the last item, got %d", m.sel)
+	}
+	m.moveSel(1)
+	if m.sel != 0 {
+		t.Errorf("moving down from the bottom should wrap to the first item, got %d", m.sel)
+	}
+	m.moveSel(1)
+	if m.sel != 1 {
+		t.Errorf("moving down should advance one item, got %d", m.sel)
+	}
+}
+
 func TestTitleMenuStartsRun(t *testing.T) {
 	g := testGameForMenus(t)
 	if g.state != stateTitle {

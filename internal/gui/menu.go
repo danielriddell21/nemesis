@@ -20,25 +20,43 @@ type menu struct {
 	sel      int
 }
 
-func (m *menu) update() {
+type menuSound int
+
+const (
+	soundNone menuSound = iota
+	soundMove
+	soundSelect
+)
+
+func (m *menu) moveSel(dir int) {
+	m.sel = (m.sel + dir + len(m.items)) % len(m.items)
+}
+
+func (m *menu) update() menuSound {
 	if inpututil.IsKeyJustPressed(ebiten.KeyDown) || inpututil.IsKeyJustPressed(ebiten.KeyS) {
-		m.sel = (m.sel + 1) % len(m.items)
+		m.moveSel(1)
+		return soundMove
 	}
 	if inpututil.IsKeyJustPressed(ebiten.KeyUp) || inpututil.IsKeyJustPressed(ebiten.KeyW) {
-		m.sel = (m.sel + len(m.items) - 1) % len(m.items)
+		m.moveSel(-1)
+		return soundMove
 	}
 	cur := m.items[m.sel]
 	if cur.adjust != nil {
 		if inpututil.IsKeyJustPressed(ebiten.KeyLeft) || inpututil.IsKeyJustPressed(ebiten.KeyA) {
 			cur.adjust(-1)
+			return soundMove
 		}
 		if inpututil.IsKeyJustPressed(ebiten.KeyRight) || inpututil.IsKeyJustPressed(ebiten.KeyD) {
 			cur.adjust(1)
+			return soundMove
 		}
 	}
 	if (inpututil.IsKeyJustPressed(ebiten.KeyEnter) || inpututil.IsKeyJustPressed(ebiten.KeySpace)) && cur.action != nil {
 		cur.action()
+		return soundSelect
 	}
+	return soundNone
 }
 
 var (

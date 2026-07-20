@@ -27,6 +27,8 @@ const (
 	CueDeath
 	CueEscape
 	CueDecoy
+	CueMenuMove
+	CueMenuSelect
 )
 
 func CueFor(k sim.ObservationKind) (Cue, bool) {
@@ -58,16 +60,18 @@ func CueFor(k sim.ObservationKind) (Cue, bool) {
 
 func Synth() map[Cue][]byte {
 	return map[Cue][]byte{
-		CuePing:    synthPing(),
-		CueStep:    synthStep(),
-		CueCreak:   synthCreak(),
-		CueDoor:    synthDoor(),
-		CueConsole: synthConsole(),
-		CueHiss:    synthHiss(),
-		CueScreech: synthScreech(),
-		CueDeath:   synthDeath(),
-		CueEscape:  synthEscape(),
-		CueDecoy:   synthDecoy(),
+		CuePing:       synthPing(),
+		CueStep:       synthStep(),
+		CueCreak:      synthCreak(),
+		CueDoor:       synthDoor(),
+		CueConsole:    synthConsole(),
+		CueHiss:       synthHiss(),
+		CueScreech:    synthScreech(),
+		CueDeath:      synthDeath(),
+		CueEscape:     synthEscape(),
+		CueDecoy:      synthDecoy(),
+		CueMenuMove:   synthMenuMove(),
+		CueMenuSelect: synthMenuSelect(),
 	}
 }
 
@@ -247,6 +251,23 @@ func synthDecoy() []byte {
 		beep := 0.3 * env(t, 6) * square(2*math.Pi*tone*t)
 		clatter := 0.08 * env(t, 40) * noise()
 		return beep + clatter
+	})
+}
+
+func synthMenuMove() []byte {
+	return renderPCM(0.06, func(t float64) float64 {
+		return 0.2 * env(t, 42) * math.Sin(2*math.Pi*660*t)
+	})
+}
+
+func synthMenuSelect() []byte {
+	return renderPCM(0.16, func(t float64) float64 {
+		// Two quick rising blips: a soft confirm.
+		f := 620.0
+		if t > 0.06 {
+			f = 930
+		}
+		return 0.22 * env(t, 14) * square(2*math.Pi*f*t)
 	})
 }
 

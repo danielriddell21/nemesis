@@ -101,6 +101,24 @@ func (a *Audio) PlayEvent(e telemetry.Event) {
 	a.reap(p)
 }
 
+const uiBase = 0.5
+
+// PlayUI plays a menu blip: no panning or distance falloff, since the interface
+// has no place in the world.
+func (a *Audio) PlayUI(cue iaudio.Cue) {
+	if a == nil || a.muted {
+		return
+	}
+	pcm, ok := a.pcm[cue]
+	if !ok {
+		return
+	}
+	p := a.ctx.NewPlayerFromBytes(pcm)
+	p.SetVolume(uiBase * a.sfxGain)
+	p.Play()
+	a.reap(p)
+}
+
 // reap keeps a short list of the most recent one-shot voices alive until they
 // finish, then lets them be collected — ebiten players stop when unreferenced.
 func (a *Audio) reap(p *audio.Player) {
