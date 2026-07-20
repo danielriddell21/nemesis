@@ -37,6 +37,8 @@ func NewRenderer(cfg Config, opts ...Option) *Renderer {
 
 func (r *Renderer) Config() Config { return r.cfg }
 
+func (r *Renderer) SetFOV(fov float64) { r.cfg.FOV = fov }
+
 func (r *Renderer) Frame(g *sim.Game, now float64) []byte {
 	cam := newCamera(g.Player.Pos, g.Player.Angle, r.cfg.FOV)
 	r.drawBackdrop()

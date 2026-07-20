@@ -22,20 +22,24 @@ func runGame(cfg Config) error {
 		seed = randomSeed()
 	}
 
+	settings := LoadSettings()
 	overlay := hud.New()
-	aud, err := NewAudio()
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "audio disabled:", err)
-		aud = nil
+	var aud *Audio
+	if settings.Sound {
+		a, err := NewAudio()
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "audio disabled:", err)
+		} else {
+			aud = a
+		}
 	}
-	game, err := NewGame(cfg, seed, overlay, aud, LoadRecords())
+	game, err := NewGame(cfg, seed, overlay, aud, LoadRecords(), settings)
 	if err != nil {
 		return err
 	}
 
 	ebiten.SetWindowTitle("nemesis")
 	ebiten.SetWindowSize(1280, 800)
-	ebiten.SetCursorMode(ebiten.CursorModeCaptured)
 	if err := handleRunError(ebiten.RunGame(game)); err != nil {
 		return fmt.Errorf("run game window: %w", err)
 	}

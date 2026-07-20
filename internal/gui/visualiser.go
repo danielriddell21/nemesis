@@ -233,26 +233,56 @@ func (v *Visualiser) renderActors(ts, offX, offY int) {
 		return
 	}
 	s := v.m.state
+	ax, ay := offX+int(s.AlienX*float64(ts)), offY+int(s.AlienY*float64(ts))
+	v.renderVisionCone(s, ax, ay, ts)
+	if s.DecoyActive {
+		v.blob(offX+int(s.DecoyX*float64(ts)), offY+int(s.DecoyY*float64(ts)), ts/3, visPalette.ripple)
+	}
 	// The hunter, tinted by its state.
 	sc, ok := visPalette.states[s.AlienState]
 	if !ok {
 		sc = visPalette.dim
 	}
-	v.blob(offX+int(s.AlienX*float64(ts)), offY+int(s.AlienY*float64(ts)), ts/2+2, sc)
-	// The player, with a facing tick.
+	v.blob(ax, ay, ts/2+2, sc)
+	// The player, with a facing tick — dimmed while hidden in a locker.
+	pc := visPalette.player
+	if s.Hidden {
+		pc = visPalette.dim
+	}
 	px, py := offX+int(s.PlayerX*float64(ts)), offY+int(s.PlayerY*float64(ts))
-	v.blob(px, py, ts/3+1, visPalette.player)
+	v.blob(px, py, ts/3+1, pc)
 	fx := px + int(math.Cos(s.PlayerA)*float64(ts))
 	fy := py + int(math.Sin(s.PlayerA)*float64(ts))
-	v.line(px, py, fx, fy, visPalette.player)
+	v.line(px, py, fx, fy, pc)
+}
+
+func (v *Visualiser) renderVisionCone(s StateMsg, ax, ay, ts int) {
+	if s.Vision <= 0 {
+		return
+	}
+	sc, ok := visPalette.states[s.AlienState]
+	if !ok {
+		sc = visPalette.dim
+	}
+	edge := color.RGBA{R: sc.R / 2, G: sc.G / 2, B: sc.B / 2, A: 255}
+	for i := 0; i <= 12; i++ {
+		a := s.AlienA - s.VisionFOV/2 + s.VisionFOV*float64(i)/12
+		ex := ax + int(math.Cos(a)*s.Vision*float64(ts))
+		ey := ay + int(math.Sin(a)*s.Vision*float64(ts))
+		v.line(ax, ay, ex, ey, edge)
+	}
 }
 
 func (v *Visualiser) renderPanel() {
 	x := visWindowW - visPanelW + 14
 	y := 24
-	v.text(x, y, "HUNTER AI", visPalette.text)
-	y += 20
 	s := v.m.state
+	title := "HUNTER AI"
+	if s.Deck > 0 {
+		title = fmt.Sprintf("HUNTER AI   DECK %d", s.Deck)
+	}
+	v.text(x, y, title, visPalette.text)
+	y += 20
 	sc, ok := visPalette.states[s.AlienState]
 	if !ok {
 		sc = visPalette.dim
@@ -260,6 +290,9 @@ func (v *Visualiser) renderPanel() {
 	state := s.AlienState
 	if state == "" {
 		state = "offline"
+	}
+	if s.Hidden {
+		state += "  (prey hidden)"
 	}
 	v.text(x, y, "STATE  "+state, sc)
 	y += 16
@@ -274,8 +307,12 @@ func (v *Visualiser) renderPanel() {
 	}
 	v.text(x, y, fmt.Sprintf("SYSTEMS %d/%d  %s", s.Done, s.Total, airlock), visPalette.dim)
 	y += 16
-	v.text(x, y, fmt.Sprintf("LEARNED TRACKER %d  VENTS %d  SEARCH %d", s.PingTier, s.VentTier, s.SearchTier), visPalette.dim)
-	y += 24
+	v.text(x, y, "LEARNED", visPalette.text)
+	y += 14
+	v.text(x, y, fmt.Sprintf(" TRACKER %d  VENTS %d  SEARCH %d", s.PingTier, s.VentTier, s.SearchTier), visPalette.dim)
+	y += 14
+	v.text(x, y, fmt.Sprintf(" DECOYS %d  LOCKERS %d", s.DecoyTier, s.LockerTier), visPalette.dim)
+	y += 22
 	v.text(x, y, "TRIGGERS", visPalette.text)
 	y += 16
 	for _, line := range v.m.feed {

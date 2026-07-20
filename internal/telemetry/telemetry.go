@@ -51,6 +51,10 @@ func (e Event) Line() string {
 		return fmt.Sprintf("GENERATOR ONLINE AT %d %d", e.X, e.Y)
 	case "ping":
 		return fmt.Sprintf("TRACKER PING AT %d %d", e.X, e.Y)
+	case "decoy":
+		return fmt.Sprintf("DECOY CHIRPS AT %d %d", e.X, e.Y)
+	case "hide":
+		return fmt.Sprintf("PREY DUCKS INTO LOCKER AT %d %d", e.X, e.Y)
 	case "alien-state":
 		return fmt.Sprintf("HUNTER %s -> %d %d", e.State, e.TargetX, e.TargetY)
 	case "alien-heard":

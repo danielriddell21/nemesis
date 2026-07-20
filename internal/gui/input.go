@@ -10,8 +10,27 @@ import (
 const mouseSensitivity = 0.0035
 
 func (g *Game) readInput() sim.Input {
-	var in sim.Input
+	in := readMovement()
+	in.TurnDelta = g.mouseTurn()
+	in.Mode = readMode()
 
+	if inpututil.IsKeyJustPressed(ebiten.KeyE) || inpututil.IsKeyJustPressed(ebiten.KeySpace) {
+		in.Use = true
+	}
+	if ebiten.IsKeyPressed(ebiten.KeyT) || ebiten.IsMouseButtonPressed(ebiten.MouseButtonRight) {
+		in.Tracker = true
+	}
+	if ebiten.IsKeyPressed(ebiten.KeyF) {
+		in.Hide = true
+	}
+	if ebiten.IsKeyPressed(ebiten.KeyQ) || ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) {
+		in.Throw = true
+	}
+	return in
+}
+
+func readMovement() sim.Input {
+	var in sim.Input
 	if ebiten.IsKeyPressed(ebiten.KeyW) || ebiten.IsKeyPressed(ebiten.KeyUp) {
 		in.Forward++
 	}
@@ -29,15 +48,6 @@ func (g *Game) readInput() sim.Input {
 	}
 	if ebiten.IsKeyPressed(ebiten.KeyArrowLeft) {
 		in.Turn--
-	}
-	in.TurnDelta = g.mouseTurn()
-	in.Mode = readMode()
-
-	if inpututil.IsKeyJustPressed(ebiten.KeyE) || inpututil.IsKeyJustPressed(ebiten.KeySpace) {
-		in.Use = true
-	}
-	if ebiten.IsKeyPressed(ebiten.KeyT) || ebiten.IsMouseButtonPressed(ebiten.MouseButtonRight) {
-		in.Tracker = true
 	}
 	return in
 }
@@ -62,5 +72,5 @@ func (g *Game) mouseTurn() float64 {
 	}
 	delta := mx - g.lastMouseX
 	g.lastMouseX = mx
-	return float64(delta) * mouseSensitivity
+	return float64(delta) * mouseSensitivity * g.settings.Sensitivity
 }
