@@ -49,12 +49,27 @@ How to read it:
 
 ## In the corridors
 
+![first-person play](demos/corridors.gif)
+
+The same pilot from inside, at real speed: raycast corridors lit by each
+room's own gloom, the gait readout and objective tally along the bottom, and
+the tracker scope coming up whenever the hunter is near. The clip starts
+rolling the moment the hunter first closes within earshot.
+
 ![first-person view with the tracker raised](demos/game.png)
 
-What the same moment feels like from inside: the raycast corridors lit by
-each room's own gloom, the hunter's silhouette mid-frame, and the raised
-motion tracker — its blip painted once per ping, only for a *moving* contact,
-with the chirp audible to more than just you.
+A posed still of the encounter: the hunter's silhouette mid-corridor and the
+raised motion tracker — its blip painted once per ping, only for a *moving*
+contact, with the chirp audible to more than just you.
+
+## Six stations
+
+![six generated stations](demos/stations.png)
+
+The generator's range across six seeds: BSP rooms joined by corridors, the
+brown vent ducts threading the wall mass between them, bulkhead doors
+(orange), objective consoles (yellow), spawn (green) and the airlock (red).
+Every layout is deterministic from its seed and guaranteed traversable.
 
 ## The visualiser at rest
 

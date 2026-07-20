@@ -21,7 +21,7 @@ the hunter can hear. Levels are deterministic from a seed.
 go run ./cmd/nemesis --seed 42
 ```
 
-![nemesis gameplay](docs/demos/game.png)
+![nemesis gameplay](docs/demos/corridors.gif)
 
 ## The AI visualiser
 

@@ -41,6 +41,12 @@ func run() error {
 	if err := record("docs/demos/hunter.gif"); err != nil {
 		return err
 	}
+	if err := recordCorridors("docs/demos/corridors.gif"); err != nil {
+		return err
+	}
+	if err := stationsMontage("docs/demos/stations.png"); err != nil {
+		return err
+	}
 	return stills()
 }
 
