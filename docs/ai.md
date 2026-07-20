@@ -1,8 +1,8 @@
 # How the hunter thinks
 
 To *watch* everything below happen live, run the game with the visualiser
-window (`nemesis --visualiser`), or see the recorded demo in the
-[README](../README.md) — regenerate it with `just demos`.
+window (`nemesis --visualiser`), or see the recorded demo and how to read it
+in [demos.md](demos.md) — regenerate it with `just demos`.
 
 The hunter is built the way Alien: Isolation's xenomorph famously is: **two
 brains**. The creature itself only knows what it senses; a director above it

@@ -37,7 +37,7 @@ go run ./cmd/nemesis --visualiser
 Below, a bot plays while the visualiser records: watch the hunter patrol,
 investigate noise ripples, hunt, lose the trail and search — and watch the
 LEARNED row climb as it hears tracker pings and vent creaks, remembering
-across runs.
+across runs. [How to read everything on screen.](docs/demos.md)
 
 ![nemesis AI visualiser](docs/demos/hunter.gif)
 
@@ -133,3 +133,4 @@ just ci              # lint + test + build
 
 - [Architecture](docs/architecture.md) — the layered, headless-testable design.
 - [How the hunter thinks](docs/ai.md) — senses, state machine and the director.
+- [Demos](docs/demos.md) — how to read the visualiser, and the captures in motion.
