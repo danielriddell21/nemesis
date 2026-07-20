@@ -31,7 +31,9 @@ type textureSet struct {
 	vent          *texture
 	console       *texture
 	consoleActive *texture
-	alien         *texture
+	alien         [2]*texture
+	locker        *texture
+	decoy         *texture
 }
 
 func buildTextures() *textureSet {
@@ -41,7 +43,9 @@ func buildTextures() *textureSet {
 		vent:          ventTexture(),
 		console:       consoleTexture(palette.console, false),
 		consoleActive: consoleTexture(palette.consoleActive, true),
-		alien:         alienTexture(),
+		alien:         [2]*texture{alienTexture(-1), alienTexture(1)},
+		locker:        lockerTexture(),
+		decoy:         decoyTexture(),
 	}
 }
 
@@ -132,7 +136,7 @@ func consoleTexel(base color.RGBA, active bool, x, y int) color.RGBA {
 	return adjust(palette.wall, -20)
 }
 
-func alienTexture() *texture {
+func alienTexture(sway int) *texture {
 	const w, h = 32, texSize
 	t := newTexture(w)
 	transparent := color.RGBA{}
@@ -143,12 +147,16 @@ func alienTexture() *texture {
 	}
 	body := palette.alien
 	sheen := adjust(body, 24)
-	// A tall silhouette: elongated head, hunched torso, whip tail. Cheap
-	// mirrored half-profile so the shape stays symmetric.
+	// A tall silhouette: elongated head, hunched torso, whip tail. The legs and
+	// tail lean by `sway` so two frames give a slinking walk cycle.
 	for y := range h {
 		half := silhouetteHalfWidth(y)
+		lean := 0
+		if y >= 40 {
+			lean = sway * (y - 40) / 8
+		}
 		for dx := -half; dx <= half; dx++ {
-			x := w/2 + dx
+			x := w/2 + dx + lean
 			if x < 0 || x >= w {
 				continue
 			}
@@ -175,6 +183,57 @@ func silhouetteHalfWidth(y int) int {
 	default: // tail sweep
 		return 6
 	}
+}
+
+func lockerTexture() *texture {
+	t := newTexture(texSize)
+	for y := range texSize {
+		for x := range texSize {
+			t.set(x, y, lockerTexel(x, y))
+		}
+	}
+	return t
+}
+
+func lockerTexel(x, y int) color.RGBA {
+	if x == 8 || x == 56 || y == 6 || y == 60 {
+		return adjust(palette.wall, 16) // the frame edge
+	}
+	if x <= 8 || x >= 56 || y <= 6 || y >= 60 {
+		return adjust(palette.wall, -28) // recessed surround
+	}
+	door := adjust(palette.wall, -6)
+	if x > 46 && x < 50 && y > 26 && y < 40 {
+		return adjust(door, 30) // handle
+	}
+	if y%6 < 2 {
+		return adjust(door, -18) // louvred slats
+	}
+	return door
+}
+
+func decoyTexture() *texture {
+	const w = 32
+	t := newTexture(w)
+	transparent := color.RGBA{}
+	glow := color.RGBA{R: 90, G: 220, B: 160, A: 255}
+	shell := color.RGBA{R: 66, G: 72, B: 82, A: 255}
+	// A small canister resting on the floor: the device sits in the lower band
+	// of the sprite so it reads as a thrown object, not a standing figure.
+	for y := range texSize {
+		for x := range w {
+			c := transparent
+			dx, dy := x-w/2, y-52
+			if dy >= -10 && dy <= 8 && dx*dx*2+dy*dy <= 80 {
+				c = shell
+				if dx*dx+dy*dy <= 6 {
+					c = glow // blinking core
+				}
+			}
+			t.set(x, y, c)
+		}
+	}
+	return t
 }
 
 func adjust(c color.RGBA, d int) color.RGBA {

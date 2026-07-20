@@ -14,13 +14,47 @@ type billboard struct {
 	scale   float64
 }
 
-func (r *Renderer) drawSprites(g *sim.Game, cam camera) {
-	boards := []billboard{
-		{pos: g.Alien.Pos, tex: r.tex.alien, scale: 1},
-		r.exitBeacon(g),
+func (r *Renderer) drawSprites(g *sim.Game, cam camera, now float64) {
+	// Draw far-to-near so nearer sprites overwrite farther ones where they
+	// overlap. The z-buffer already clips against walls.
+	boards := []billboard{r.exitBeacon(g)}
+	for _, c := range g.World.Level.Lockers {
+		boards = append(boards, billboard{
+			pos:   sim.Vec2{X: float64(c.X) + 0.5, Y: float64(c.Y) + 0.5},
+			tex:   r.tex.locker,
+			scale: 0.9,
+		})
 	}
+	if d := g.DecoyState(); d.Active {
+		boards = append(boards, billboard{pos: d.Pos, tex: r.tex.decoy, scale: 0.5})
+	}
+	boards = append(boards, billboard{pos: g.Alien.Pos, tex: r.alienFrame(g, now), scale: 1})
+
+	sortByDepth(boards, cam)
 	for _, b := range boards {
 		r.drawBillboard(b, cam)
+	}
+}
+
+func (r *Renderer) alienFrame(g *sim.Game, now float64) *texture {
+	if !g.Alien.Moving {
+		return r.tex.alien[0]
+	}
+	rate := 5.0
+	if g.Alien.State == sim.StateHunt {
+		rate = 9.0 // a faster, more frantic gait while it hunts
+	}
+	return r.tex.alien[int(now*rate)&1]
+}
+
+func sortByDepth(b []billboard, cam camera) {
+	depth := func(bb billboard) float64 {
+		return (bb.pos.X-cam.pos.X)*(bb.pos.X-cam.pos.X) + (bb.pos.Y-cam.pos.Y)*(bb.pos.Y-cam.pos.Y)
+	}
+	for i := 1; i < len(b); i++ {
+		for j := i; j > 0 && depth(b[j-1]) < depth(b[j]); j-- {
+			b[j-1], b[j] = b[j], b[j-1]
+		}
 	}
 }
 

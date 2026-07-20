@@ -151,6 +151,7 @@ func (g *Game) Tick(in Input, dt float64) {
 	g.elapsed += dt
 
 	g.learning.decay(dt)
+	g.World.tickDoors(dt)
 	noise := g.tickPlayer(in, dt)
 	g.tickTracker(in, dt, &noise)
 	g.tickHide(in)

@@ -33,17 +33,38 @@ func (r *Renderer) drawHUD(g *sim.Game, now float64) {
 }
 
 func (r *Renderer) drawStatusLine(g *sim.Game) {
-	gait := gaitLabel(g)
-	status := fmt.Sprintf("%s   SYSTEMS %d/%d", gait, g.ObjectivesDone(), g.ObjectivesTotal())
+	status := fmt.Sprintf("%s   SYSTEMS %d/%d   DECOYS %d", gaitLabel(g), g.ObjectivesDone(), g.ObjectivesTotal(), g.Player.Decoys)
 	if g.ExitUnlocked() {
 		status += "   AIRLOCK OPEN"
+	}
+	if g.Depth() > 0 {
+		status = fmt.Sprintf("DECK %d   %s", g.Depth()+1, status)
 	}
 	y := r.cfg.Height - 8
 	r.drawText(hudMarginX+1, y+1, status, palette.hudDrop)
 	r.drawText(hudMarginX, y, status, palette.hudDim)
+
+	if prompt := actionPrompt(g); prompt != "" {
+		x := (r.cfg.Width - len(prompt)*glyphWidth) / 2
+		r.drawText(x+1, r.cfg.Height-24+1, prompt, palette.hudDrop)
+		r.drawText(x, r.cfg.Height-24, prompt, palette.tracker)
+	}
+}
+
+func actionPrompt(g *sim.Game) string {
+	if g.Player.Hidden {
+		return "[F] LEAVE LOCKER"
+	}
+	if g.Player.OnLocker(g.World) {
+		return "[F] HIDE"
+	}
+	return ""
 }
 
 func gaitLabel(g *sim.Game) string {
+	if g.Player.Hidden {
+		return "HIDDEN"
+	}
 	if g.Player.InVent(g.World) {
 		return "CRAWL"
 	}

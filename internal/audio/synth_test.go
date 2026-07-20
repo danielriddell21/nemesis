@@ -2,6 +2,7 @@ package audio
 
 import (
 	"bytes"
+	"math"
 	"testing"
 
 	"github.com/danielriddell21/nemesis/internal/sim"
@@ -9,7 +10,7 @@ import (
 
 func TestSynthCoversAllCues(t *testing.T) {
 	sounds := Synth()
-	cues := []Cue{CuePing, CueStep, CueCreak, CueDoor, CueConsole, CueHiss, CueScreech, CueDeath, CueEscape}
+	cues := []Cue{CuePing, CueStep, CueCreak, CueDoor, CueConsole, CueHiss, CueScreech, CueDeath, CueEscape, CueDecoy}
 	for _, c := range cues {
 		pcm, ok := sounds[c]
 		if !ok || len(pcm) == 0 {
@@ -109,5 +110,49 @@ func TestAmbientBandsDiffer(t *testing.T) {
 	}
 	if !bytes.Equal(Ambient(-3), calm) || !bytes.Equal(Ambient(99), tense) {
 		t.Error("out-of-range bands should clamp")
+	}
+}
+
+func TestCueForDecoy(t *testing.T) {
+	cue, ok := CueFor(sim.ObsDecoy)
+	if !ok || cue != CueDecoy {
+		t.Errorf("CueFor(ObsDecoy) = %v,%v want %v,true", cue, ok, CueDecoy)
+	}
+}
+
+func TestPanCentresAndSwings(t *testing.T) {
+	// Dead ahead: balanced. A sound to the right favours the right channel.
+	l, r := Pan(0)
+	if math.Abs(l-r) > 1e-9 {
+		t.Errorf("ahead should be balanced, got L=%v R=%v", l, r)
+	}
+	l, r = Pan(math.Pi / 2) // hard right
+	if r <= l {
+		t.Errorf("hard right should favour the right channel, got L=%v R=%v", l, r)
+	}
+	l, r = Pan(-math.Pi / 2) // hard left
+	if l <= r {
+		t.Errorf("hard left should favour the left channel, got L=%v R=%v", l, r)
+	}
+	// Constant power: L^2 + R^2 stays ~1 across the arc.
+	for _, b := range []float64{-1.2, -0.4, 0, 0.7, 1.5} {
+		l, r = Pan(b)
+		if p := l*l + r*r; math.Abs(p-1) > 1e-9 {
+			t.Errorf("Pan(%v): power %v, want 1", b, p)
+		}
+	}
+}
+
+func TestPannedScalesChannels(t *testing.T) {
+	// One stereo frame at full scale on both channels; mute the left, keep right.
+	pcm := []byte{0xff, 0x7f, 0xff, 0x7f} // L=+32767, R=+32767
+	out := Panned(pcm, 0, 1)
+	l := int16(uint16(out[0]) | uint16(out[1])<<8)
+	r := int16(uint16(out[2]) | uint16(out[3])<<8)
+	if l != 0 {
+		t.Errorf("left channel should be muted, got %d", l)
+	}
+	if r != 32767 {
+		t.Errorf("right channel should be untouched, got %d", r)
 	}
 }

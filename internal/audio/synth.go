@@ -26,6 +26,7 @@ const (
 	CueScreech
 	CueDeath
 	CueEscape
+	CueDecoy
 )
 
 func CueFor(k sim.ObservationKind) (Cue, bool) {
@@ -40,6 +41,8 @@ func CueFor(k sim.ObservationKind) (Cue, bool) {
 		return CueDoor, true
 	case sim.ObsConsole:
 		return CueConsole, true
+	case sim.ObsDecoy:
+		return CueDecoy, true
 	case sim.ObsAlienHeard:
 		return CueHiss, true
 	case sim.ObsAlienSeen:
@@ -64,7 +67,35 @@ func Synth() map[Cue][]byte {
 		CueScreech: synthScreech(),
 		CueDeath:   synthDeath(),
 		CueEscape:  synthEscape(),
+		CueDecoy:   synthDecoy(),
 	}
+}
+
+// Pan converts a bearing relative to the listener's facing (0 = dead ahead,
+// positive to the right) into constant-power left/right channel gains in
+// [0, 1]. Sounds ahead or behind sit centred; sounds to a side swing toward
+// that ear.
+func Pan(bearing float64) (left, right float64) {
+	// Fold front/back onto the same left-right axis: a sound directly behind
+	// pans the same as one directly ahead (centred).
+	x := math.Sin(bearing) // -1 hard left, +1 hard right
+	angle := (x + 1) * (math.Pi / 4)
+	return math.Cos(angle), math.Sin(angle)
+}
+
+// Panned returns a copy of interleaved 16-bit stereo PCM with the left and
+// right channels scaled by the given gains.
+func Panned(pcm []byte, left, right float64) []byte {
+	out := make([]byte, len(pcm))
+	for i := 0; i+bytesPerFrame <= len(pcm); i += bytesPerFrame {
+		l := int16(uint16(pcm[i]) | uint16(pcm[i+1])<<8)
+		r := int16(uint16(pcm[i+2]) | uint16(pcm[i+3])<<8)
+		l = int16(float64(l) * left)
+		r = int16(float64(r) * right)
+		out[i], out[i+1] = byte(l), byte(uint16(l)>>8)
+		out[i+2], out[i+3] = byte(r), byte(uint16(r)>>8)
+	}
+	return out
 }
 
 const maxMenaceBand = 4
@@ -202,6 +233,28 @@ func synthDeath() []byte {
 		f := 110 * math.Exp(-t*1.6)
 		return env(t, 2.2) * (0.5*math.Sin(2*math.Pi*f*t) + 0.15*noise())
 	})
+}
+
+func synthDecoy() []byte {
+	noise := noiseSource()
+	return renderPCM(0.35, func(t float64) float64 {
+		// A tinny two-tone chirp over a little clatter: the noisemaker calling
+		// for attention.
+		tone := 880.0
+		if math.Mod(t, 0.16) > 0.08 {
+			tone = 1180
+		}
+		beep := 0.3 * env(t, 6) * square(2*math.Pi*tone*t)
+		clatter := 0.08 * env(t, 40) * noise()
+		return beep + clatter
+	})
+}
+
+func square(phase float64) float64 {
+	if math.Sin(phase) >= 0 {
+		return 1
+	}
+	return -1
 }
 
 func synthEscape() []byte {

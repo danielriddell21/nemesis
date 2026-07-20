@@ -80,33 +80,57 @@ func castRay(g *sim.Game, pos sim.Vec2, rayX, rayY float64) rayHit {
 			mapY += stepY
 			side = 1
 		}
+		cell := world.Coord{X: mapX, Y: mapY}
+		if g.World.Level.At(mapX, mapY) == world.TileDoor && g.World.DoorOpen(cell) {
+			if hit, blocked := doorColumn(g, pos, rayX, rayY, sideX, sideY, deltaX, deltaY, side, cell, prevX, prevY); blocked {
+				return hit
+			}
+			continue
+		}
 		if g.World.Solid(mapX, mapY) {
 			break
 		}
 	}
-	var dist float64
-	if side == 0 {
-		dist = sideX - deltaX
-	} else {
-		dist = sideY - deltaY
-	}
-	if dist < 1e-4 {
-		dist = 1e-4
-	}
-	var wallX float64
-	if side == 0 {
-		wallX = pos.Y + dist*rayY
-	} else {
-		wallX = pos.X + dist*rayX
-	}
-	wallX -= math.Floor(wallX)
+	dist := max(boundaryDist(sideX, sideY, deltaX, deltaY, side), 1e-4)
 	return rayHit{
 		cell:  world.Coord{X: mapX, Y: mapY},
 		prev:  world.Coord{X: prevX, Y: prevY},
 		dist:  dist,
 		side:  side,
-		wallX: wallX,
+		wallX: boundaryWallX(pos, rayX, rayY, dist, side),
 	}
+}
+
+// doorColumn decides whether a ray crossing an opening door is stopped by the
+// sliding panel (returning the hit) or slips through its retracted part.
+func doorColumn(g *sim.Game, pos sim.Vec2, rayX, rayY, sideX, sideY, deltaX, deltaY float64, side int, cell world.Coord, prevX, prevY int) (rayHit, bool) {
+	slide := g.World.DoorSlide(cell)
+	if slide >= 1 {
+		return rayHit{}, false // fully retracted: the doorway is open
+	}
+	d := boundaryDist(sideX, sideY, deltaX, deltaY, side)
+	wx := boundaryWallX(pos, rayX, rayY, d, side)
+	if wx < slide {
+		return rayHit{}, false // this column has retracted; the ray passes
+	}
+	return rayHit{cell: cell, prev: world.Coord{X: prevX, Y: prevY}, dist: max(d, 1e-4), side: side, wallX: wx}, true
+}
+
+func boundaryDist(sideX, sideY, deltaX, deltaY float64, side int) float64 {
+	if side == 0 {
+		return sideX - deltaX
+	}
+	return sideY - deltaY
+}
+
+func boundaryWallX(pos sim.Vec2, rayX, rayY, dist float64, side int) float64 {
+	var wx float64
+	if side == 0 {
+		wx = pos.Y + dist*rayY
+	} else {
+		wx = pos.X + dist*rayX
+	}
+	return wx - math.Floor(wx)
 }
 
 func (r *Renderer) wallTexture(g *sim.Game, cell world.Coord) *texture {

@@ -135,3 +135,50 @@ func TestCastRayHitsBorder(t *testing.T) {
 		t.Errorf("hit distance %v, want 2.5", hit.dist)
 	}
 }
+
+func TestSlidingDoorReveals(t *testing.T) {
+	// A door dead ahead: shut it occludes the room; fully open the ray passes
+	// through to the wall beyond, so the mid-column changes as it slides.
+	l := boxLevel()
+	l.Tiles[4*8+2] = world.TileDoor // a door in the west part of the box
+	g := sim.New(l)
+	g.Player.Pos = sim.Vec2{X: 1.5, Y: 4.5}
+	g.Player.Angle = 0 // facing the door to the east
+	shut := NewRenderer(Config{Width: 64, Height: 48, FOV: 1.152})
+	shutFrame := append([]byte(nil), shut.Frame(g, 0)...)
+
+	g.World.OpenDoor(world.Coord{X: 2, Y: 4})
+	for range 40 { // let it slide fully open
+		g.Tick(sim.Input{}, 1.0/60)
+	}
+	openFrame := NewRenderer(Config{Width: 64, Height: 48, FOV: 1.152}).Frame(g, 0)
+	if bytes.Equal(shutFrame, openFrame) {
+		t.Error("a sliding door should change the view between shut and open")
+	}
+}
+
+func TestHiddenPlayerDarkensView(t *testing.T) {
+	l := boxLevel()
+	l.Tiles[4*8+2] = world.TileLocker
+	l.Lockers = []world.Coord{{X: 2, Y: 4}}
+	g := sim.New(l)
+	g.Player.Pos = sim.Vec2{X: 2.5, Y: 4.5}
+	cfg := Config{Width: 64, Height: 48, FOV: 1.152}
+	before := brightness(NewRenderer(cfg).Frame(g, 0))
+	g.Tick(sim.Input{Hide: true}, 1.0/60)
+	if !g.Player.Hidden {
+		t.Fatal("player should be hidden")
+	}
+	after := brightness(NewRenderer(cfg).Frame(g, 0))
+	if after >= before {
+		t.Error("the locker view should darken the frame")
+	}
+}
+
+func brightness(fb []byte) int {
+	total := 0
+	for i := 0; i < len(fb); i += 4 {
+		total += int(fb[i]) + int(fb[i+1]) + int(fb[i+2])
+	}
+	return total
+}

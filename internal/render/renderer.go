@@ -41,7 +41,7 @@ func (r *Renderer) Frame(g *sim.Game, now float64) []byte {
 	cam := newCamera(g.Player.Pos, g.Player.Angle, r.cfg.FOV)
 	r.drawBackdrop()
 	r.drawWalls(g, cam, now)
-	r.drawSprites(g, cam)
+	r.drawSprites(g, cam, now)
 	r.drawEffects(g, now)
 	r.drawHUD(g, now)
 	return r.fb
@@ -87,8 +87,9 @@ func (r *Renderer) drawBackdrop() {
 }
 
 func (r *Renderer) drawEffects(g *sim.Game, now float64) {
-	inVent := g.Player.InVent(g.World)
-	if inVent {
+	if g.Player.Hidden {
+		r.lockerView()
+	} else if g.Player.InVent(g.World) {
 		r.letterbox()
 	}
 	switch {
@@ -118,6 +119,27 @@ func (r *Renderer) letterbox() {
 			if x%4 != 3 {
 				row[x] = 0
 			}
+		}
+	}
+}
+
+func (r *Renderer) lockerView() {
+	// Peering out through a louvred locker door: the world is darkened and seen
+	// between horizontal slats, with a clear viewing gap at eye level.
+	w, h := r.cfg.Width, r.cfg.Height
+	slitTop, slitBottom := h*2/5, h*3/5
+	for y := range h {
+		darken := 0.82
+		if y >= slitTop && y < slitBottom {
+			darken = 0.25 // the eye-level gap you look through
+		} else if (y/6)%2 == 0 {
+			darken = 0.95 // the solid slats
+		}
+		row := r.fb[y*w*4 : (y+1)*w*4]
+		for x := 0; x < w*4; x += 4 {
+			row[x] = uint8(float64(row[x]) * (1 - darken))
+			row[x+1] = uint8(float64(row[x+1]) * (1 - darken))
+			row[x+2] = uint8(float64(row[x+2]) * (1 - darken))
 		}
 	}
 }
