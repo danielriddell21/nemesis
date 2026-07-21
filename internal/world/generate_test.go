@@ -3,7 +3,15 @@ package world
 import (
 	"reflect"
 	"testing"
+
+	"github.com/danielriddell21/crucible/worldgen"
 )
+
+// exitReachable reports whether the exit can be reached from the spawn with
+// doors treated as passable — the deck's basic connectivity guarantee.
+func exitReachable(l *Level) bool {
+	return worldgen.Reachable(l.W, l.H, l.Spawn, l.Exit, blocksWalls(l.Level))
+}
 
 func TestGenerateConnectivity(t *testing.T) {
 	sizes := []struct {
@@ -28,15 +36,15 @@ func TestGenerateConnectivity(t *testing.T) {
 			if l.At(l.Exit.X, l.Exit.Y) != TileExit {
 				t.Errorf("%dx%d seed=%d: exit tile not marked", s.w, s.h, seed)
 			}
-			if !reachable(l, l.Spawn, l.Exit, blocksWalls(l)) {
+			if !exitReachable(l) {
 				t.Errorf("%dx%d seed=%d: exit unreachable from spawn\n%s", s.w, s.h, seed, l)
 			}
-			dist := distanceField(l, l.Spawn)
+			dist := distanceField(l.Level, l.Spawn)
 			for _, c := range l.Consoles {
 				if l.At(c.X, c.Y) != TileConsole {
 					t.Errorf("%dx%d seed=%d: console cell %v not marked", s.w, s.h, seed, c)
 				}
-				if !faceReachable(l, dist, c) {
+				if !faceReachable(dist, c) {
 					t.Errorf("%dx%d seed=%d: console %v has no reachable face\n%s", s.w, s.h, seed, c, l)
 				}
 			}
@@ -104,8 +112,8 @@ func TestGenerateNormalizesConfig(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if l.Width != minDimension || l.Height != minDimension {
-		t.Errorf("got %dx%d, want clamped to %dx%d", l.Width, l.Height, minDimension, minDimension)
+	if l.W != minDimension || l.H != minDimension {
+		t.Errorf("got %dx%d, want clamped to %dx%d", l.W, l.H, minDimension, minDimension)
 	}
 	if len(l.Consoles) != 5 {
 		t.Errorf("got %d consoles, want clamped to 5", len(l.Consoles))
@@ -120,8 +128,8 @@ func TestGenerateSpawnLit(t *testing.T) {
 	if l.LightAt(l.Spawn.X, l.Spawn.Y) <= 0 {
 		t.Error("spawn tile has no light")
 	}
-	for y := range l.Height {
-		for x := range l.Width {
+	for y := range l.H {
+		for x := range l.W {
 			if l.At(x, y).Walkable() && l.LightAt(x, y) <= 0 {
 				t.Errorf("walkable cell (%d,%d) unlit", x, y)
 			}

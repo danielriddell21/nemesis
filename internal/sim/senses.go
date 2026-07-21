@@ -105,8 +105,8 @@ func nearestWalkable(l *world.Level, c world.Coord) world.Coord {
 		return c
 	}
 	best, bestD := c, math.MaxFloat64
-	for y := range l.Height {
-		for x := range l.Width {
+	for y := range l.H {
+		for x := range l.W {
 			if !l.At(x, y).Walkable() {
 				continue
 			}

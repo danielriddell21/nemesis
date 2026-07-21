@@ -1,20 +1,33 @@
 package world
 
+import (
+	"github.com/danielriddell21/crucible/level"
+	"github.com/danielriddell21/crucible/worldgen"
+)
+
 const (
 	corridorLight = 0.4
 	ventLight     = 0.15
 	flickerChance = 0.18
 )
 
-func assignLight(l *Level, g *rng, rooms []Room) {
+// assignLight paints each room a steady base glow — some rooms flickering —
+// and drops corridors and vents to their dim constants. It returns the
+// per-cell flicker mask; the light itself lives on the level. crucible/level
+// starts every cell fully lit, so the moods are laid over a cleared field.
+func assignLight(l *level.Level, rng *worldgen.RNG, rooms []Room) []bool {
+	flicker := make([]bool, l.W*l.H)
+	for i := range l.Light {
+		l.Light[i] = 0
+	}
 	for _, r := range rooms {
-		base := g.betweenF(0.5, 0.9)
-		flicker := g.chance(flickerChance)
+		base := rng.BetweenF(0.5, 0.9)
+		flick := rng.Chance(flickerChance)
 		for y := r.Y; y < r.Y+r.H; y++ {
 			for x := r.X; x < r.X+r.W; x++ {
-				i := y*l.Width + x
+				i := l.Index(x, y)
 				l.Light[i] = base
-				l.Flicker[i] = flicker
+				flicker[i] = flick
 			}
 		}
 	}
@@ -29,4 +42,5 @@ func assignLight(l *Level, g *rng, rooms []Room) {
 			l.Light[i] = corridorLight
 		}
 	}
+	return flicker
 }

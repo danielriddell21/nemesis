@@ -3,6 +3,9 @@ package render
 import (
 	"image/color"
 
+	"github.com/danielriddell21/crucible/geom"
+	"github.com/danielriddell21/crucible/raycast"
+
 	"github.com/danielriddell21/nemesis/internal/sim"
 )
 
@@ -14,7 +17,7 @@ type billboard struct {
 	scale   float64
 }
 
-func (r *Renderer) drawSprites(g *sim.Game, cam camera, now float64) {
+func (r *Renderer) drawSprites(g *sim.Game, cam raycast.Camera, now float64) {
 	// Draw far-to-near so nearer sprites overwrite farther ones where they
 	// overlap. The z-buffer already clips against walls.
 	boards := []billboard{r.exitBeacon(g)}
@@ -30,7 +33,10 @@ func (r *Renderer) drawSprites(g *sim.Game, cam camera, now float64) {
 	}
 	boards = append(boards, billboard{pos: g.Alien.Pos, tex: r.alienFrame(g, now), scale: 1})
 
-	sortByDepth(boards, cam)
+	raycast.SortFarToNear(boards, func(b billboard) float64 {
+		dx, dy := b.pos.X-cam.Pos.X, b.pos.Y-cam.Pos.Y
+		return dx*dx + dy*dy
+	})
 	for _, b := range boards {
 		r.drawBillboard(b, cam)
 	}
@@ -47,17 +53,6 @@ func (r *Renderer) alienFrame(g *sim.Game, now float64) *texture {
 	return r.tex.alien[int(now*rate)&1]
 }
 
-func sortByDepth(b []billboard, cam camera) {
-	depth := func(bb billboard) float64 {
-		return (bb.pos.X-cam.pos.X)*(bb.pos.X-cam.pos.X) + (bb.pos.Y-cam.pos.Y)*(bb.pos.Y-cam.pos.Y)
-	}
-	for i := 1; i < len(b); i++ {
-		for j := i; j > 0 && depth(b[j-1]) < depth(b[j]); j-- {
-			b[j-1], b[j] = b[j], b[j-1]
-		}
-	}
-}
-
 func (r *Renderer) exitBeacon(g *sim.Game) billboard {
 	c := palette.exitLocked
 	if g.ExitUnlocked() {
@@ -71,39 +66,27 @@ func (r *Renderer) exitBeacon(g *sim.Game) billboard {
 	}
 }
 
-func (r *Renderer) drawBillboard(b billboard, cam camera) {
+func (r *Renderer) drawBillboard(b billboard, cam raycast.Camera) {
 	w, h := r.cfg.Width, r.cfg.Height
-	relX := b.pos.X - cam.pos.X
-	relY := b.pos.Y - cam.pos.Y
-
-	// Inverse camera transform into screen space.
-	invDet := 1 / (cam.planeX*cam.dirY - cam.dirX*cam.planeY)
-	transX := invDet * (cam.dirY*relX - cam.dirX*relY)
-	transY := invDet * (-cam.planeY*relX + cam.planeX*relY)
-	if transY <= 0.1 {
+	p, ok := cam.Project(geom.Vec2{X: b.pos.X, Y: b.pos.Y}, w, h, b.scale)
+	if !ok {
 		return
 	}
-	screenX := int(float64(w) / 2 * (1 + transX/transY))
-	size := int(float64(h) / transY * b.scale)
-	if size < 2 {
-		return
-	}
-	top := h/2 + int(float64(h)/transY)/2 - size
-	drawStart := max(top, 0)
-	drawEnd := min(top+size, h)
-	left := screenX - size/4
-	right := screenX + size/4
+	drawStart := max(p.Top, 0)
+	drawEnd := min(p.Top+p.Size, h)
+	left := p.ScreenX - p.Size/4
+	right := p.ScreenX + p.Size/4
 	for x := max(left, 0); x < min(right, w); x++ {
-		if transY >= r.zbuf[x] {
+		if p.Depth >= r.zbuf[x] {
 			continue
 		}
 		texX := (x - left) * 32 / max(right-left, 1)
 		for y := drawStart; y < drawEnd; y++ {
-			c, ok := r.spriteTexel(b, texX, (y-top)*64/size)
+			c, ok := r.spriteTexel(b, texX, (y-p.Top)*64/p.Size)
 			if !ok {
 				continue
 			}
-			r.putShaded(x, y, c, 0.9, transY)
+			r.putShaded(x, y, c, 0.9, p.Depth)
 		}
 	}
 }

@@ -1,35 +1,18 @@
 package world
 
-import "sort"
+import (
+	"sort"
 
-func placeSpawnAndExit(l *Level, rooms []Room) {
-	if len(rooms) == 0 {
-		return
-	}
-	spawn := rooms[0].Center()
-	dist := distanceField(l, spawn)
-	exit, best := spawn, 0
-	for i, d := range dist {
-		c := Coord{X: i % l.Width, Y: i / l.Width}
-		if d > best && l.At(c.X, c.Y) == TileFloor {
-			best = d
-			exit = c
-		}
-	}
-	l.Spawn = spawn
-	l.set(spawn.X, spawn.Y, TileSpawn)
-	if exit != spawn {
-		l.Exit = exit
-		l.set(exit.X, exit.Y, TileExit)
-	}
-}
+	"github.com/danielriddell21/crucible/level"
+	"github.com/danielriddell21/crucible/worldgen"
+)
 
-func placeConsoles(l *Level, g *rng, rooms []Room, want int) {
+func placeConsoles(l *level.Level, rng *worldgen.RNG, rooms []Room, want int) []Coord {
 	if len(rooms) == 0 || want <= 0 {
-		return
+		return nil
 	}
 	dist := distanceField(l, l.Spawn)
-	at := func(c Coord) int { return dist[c.Y*l.Width+c.X] }
+	at := dist.At
 
 	// Rank candidate rooms by distance from spawn, farthest first, skipping the
 	// spawn room and any room the field never reached.
@@ -51,32 +34,35 @@ func placeConsoles(l *Level, g *rng, rooms []Room, want int) {
 
 	// Greedily pick rooms that keep their pairwise spread, relaxing the spread
 	// requirement if the map is too small to satisfy it.
-	minSpread := (l.Width + l.Height) / 8
-	for spread := minSpread; spread >= 0 && len(l.Consoles) < want; spread /= 2 {
-		mountConsoles(l, g, rooms, order, want, spread)
+	consoles := make([]Coord, 0, want)
+	minSpread := (l.W + l.H) / 8
+	for spread := minSpread; spread >= 0 && len(consoles) < want; spread /= 2 {
+		consoles = mountConsoles(l, rng, rooms, order, consoles, want, spread)
 		if spread == 0 {
 			break
 		}
 	}
+	return consoles
 }
 
-func mountConsoles(l *Level, g *rng, rooms []Room, order []int, want, spread int) {
+func mountConsoles(l *level.Level, rng *worldgen.RNG, rooms []Room, order []int, consoles []Coord, want, spread int) []Coord {
 	for _, ri := range order {
-		if len(l.Consoles) >= want {
-			return
+		if len(consoles) >= want {
+			return consoles
 		}
-		if !spacedFrom(l.Consoles, rooms[ri].Center(), spread) {
+		if !spacedFrom(consoles, rooms[ri].Center(), spread) {
 			continue
 		}
-		if m, ok := consoleSite(l, g, rooms[ri]); ok {
-			l.set(m.X, m.Y, TileConsole)
-			l.Consoles = append(l.Consoles, m)
+		if m, ok := consoleSite(l, rng, rooms[ri]); ok {
+			l.Set(m.X, m.Y, TileConsole)
+			consoles = append(consoles, m)
 		}
 	}
+	return consoles
 }
 
-func spacedFrom(consoles []Coord, c Coord, spread int) bool {
-	for _, o := range consoles {
+func spacedFrom(placed []Coord, c Coord, spread int) bool {
+	for _, o := range placed {
 		if manhattan(o, c) < spread {
 			return false
 		}
@@ -84,12 +70,12 @@ func spacedFrom(consoles []Coord, c Coord, spread int) bool {
 	return true
 }
 
-func consoleSite(l *Level, g *rng, r Room) (Coord, bool) {
+func consoleSite(l *level.Level, rng *worldgen.RNG, r Room) (Coord, bool) {
 	ring := roomPerimeter(r)
-	off := g.intn(len(ring))
+	off := rng.IntN(len(ring))
 	for i := range ring {
 		c := ring[(off+i)%len(ring)]
-		if c.X < 1 || c.Y < 1 || c.X >= l.Width-1 || c.Y >= l.Height-1 {
+		if c.X < 1 || c.Y < 1 || c.X >= l.W-1 || c.Y >= l.H-1 {
 			continue
 		}
 		if l.At(c.X, c.Y) != TileWall {
@@ -102,6 +88,24 @@ func consoleSite(l *Level, g *rng, r Room) (Coord, bool) {
 		}
 	}
 	return Coord{}, false
+}
+
+// roomPerimeter lists the wall ring one cell outside the room.
+func roomPerimeter(r Room) []Coord {
+	out := make([]Coord, 0, 2*r.W+2*r.H)
+	for x := r.X; x < r.X+r.W; x++ {
+		out = append(out, Coord{X: x, Y: r.Y - 1})
+	}
+	for x := r.X; x < r.X+r.W; x++ {
+		out = append(out, Coord{X: x, Y: r.Y + r.H})
+	}
+	for y := r.Y; y < r.Y+r.H; y++ {
+		out = append(out, Coord{X: r.X - 1, Y: y})
+	}
+	for y := r.Y; y < r.Y+r.H; y++ {
+		out = append(out, Coord{X: r.X + r.W, Y: y})
+	}
+	return out
 }
 
 func manhattan(a, b Coord) int {

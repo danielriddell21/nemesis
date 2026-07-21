@@ -1,88 +1,58 @@
 package world
 
 import (
-	"strings"
-
 	"github.com/danielriddell21/crucible/geom"
+	"github.com/danielriddell21/crucible/level"
 )
 
-// Coord is a tile-grid cell, shared with the rest of the family through
-// crucible/geom.
-type Coord = geom.Coord
+// Coord is a tile-grid cell and Room an axis-aligned span of tiles, shared
+// with the family through crucible/geom.
+type (
+	Coord = geom.Coord
+	Room  = geom.Rect
+)
 
-// Room is an axis-aligned span of tiles, shared with the family through
-// crucible/geom.
-type Room = geom.Rect
+// Tile is the engine's spatial tile vocabulary from crucible/level; the
+// aliases below give nemesis's two gameplay tiles their station names.
+type Tile = level.Tile
 
+const (
+	TileFloor = level.TileFloor
+	TileWall  = level.TileWall
+	TileDoor  = level.TileDoor
+	TileVent  = level.TileVent
+	// TileConsole is a wall-mounted console the player brings online; the
+	// engine models it as a generic wall-mounted interactable.
+	TileConsole = level.TileSwitch
+	// TileLocker is a recess the player ducks into to break line of sight;
+	// the engine models it as a generic hiding spot.
+	TileLocker = level.TileCover
+	TileSpawn  = level.TileSpawn
+	TileExit   = level.TileExit
+)
+
+// Level is a crucible/level spatial world plus nemesis's gameplay markers:
+// the rooms, the consoles to bring online, the lockers to hide in, and the
+// per-cell flicker of failing light fixtures.
 type Level struct {
-	Width, Height int
-	Tiles         []TileType
-	Spawn, Exit   Coord
-	Rooms         []Room
-	Consoles      []Coord
-	Lockers       []Coord
-	VentMouths    []Coord
-	Light         []float64
-	Flicker       []bool
-	Seed          int64
+	*level.Level
+	Rooms    []Room
+	Consoles []Coord
+	Lockers  []Coord
+	Flicker  []bool
 }
 
-func newLevel(width, height int, seed int64) *Level {
-	tiles := make([]TileType, width*height)
-	for i := range tiles {
-		tiles[i] = TileWall
-	}
-	return &Level{
-		Width:   width,
-		Height:  height,
-		Tiles:   tiles,
-		Light:   make([]float64, width*height),
-		Flicker: make([]bool, width*height),
-		Seed:    seed,
-	}
-}
-
-func (l *Level) InBounds(x, y int) bool {
-	return x >= 0 && y >= 0 && x < l.Width && y < l.Height
-}
-
-func (l *Level) At(x, y int) TileType {
-	if !l.InBounds(x, y) {
-		// Out-of-bounds reads act solid so callers can skip bounds checks.
-		return TileWall
-	}
-	return l.Tiles[y*l.Width+x]
-}
-
-func (l *Level) LightAt(x, y int) float64 {
-	if !l.InBounds(x, y) || len(l.Light) == 0 {
-		return 0
-	}
-	return l.Light[y*l.Width+x]
-}
-
+// FlickerAt reports whether the light fixture over (x, y) is a failing one
+// that stutters.
 func (l *Level) FlickerAt(x, y int) bool {
 	if !l.InBounds(x, y) || len(l.Flicker) == 0 {
 		return false
 	}
-	return l.Flicker[y*l.Width+x]
+	return l.Flicker[l.Index(x, y)]
 }
 
-func (l *Level) set(x, y int, t TileType) {
-	if l.InBounds(x, y) {
-		l.Tiles[y*l.Width+x] = t
-	}
-}
-
-func (l *Level) Solid(x, y int) bool {
-	switch l.At(x, y) {
-	case TileWall, TileDoor, TileConsole:
-		return true
-	default:
-		return false
-	}
-}
-
+// RoomAt returns the index of the room containing c, or -1 when c is not in
+// any room.
 func (l *Level) RoomAt(c Coord) int {
 	for i, r := range l.Rooms {
 		if r.Contains(c) {
@@ -90,16 +60,4 @@ func (l *Level) RoomAt(c Coord) int {
 		}
 	}
 	return -1
-}
-
-func (l *Level) String() string {
-	var b strings.Builder
-	b.Grow((l.Width + 1) * l.Height)
-	for y := range l.Height {
-		for x := range l.Width {
-			b.WriteRune(l.At(x, y).Rune())
-		}
-		b.WriteByte('\n')
-	}
-	return b.String()
 }
