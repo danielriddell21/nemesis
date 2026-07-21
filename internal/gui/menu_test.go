@@ -4,7 +4,7 @@ import (
 	"image/color"
 	"testing"
 
-	"github.com/danielriddell21/nemesis/internal/hud"
+	"github.com/danielriddell21/crucible/hud"
 )
 
 func testGameForMenus(t *testing.T) *Game {

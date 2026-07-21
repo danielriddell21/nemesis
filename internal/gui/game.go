@@ -7,8 +7,9 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 
+	"github.com/danielriddell21/crucible/hud"
+
 	iaudio "github.com/danielriddell21/nemesis/internal/audio"
-	"github.com/danielriddell21/nemesis/internal/hud"
 	"github.com/danielriddell21/nemesis/internal/render"
 	"github.com/danielriddell21/nemesis/internal/sim"
 	"github.com/danielriddell21/nemesis/internal/telemetry"

@@ -5,7 +5,8 @@ import (
 	"math"
 	"testing"
 
-	"github.com/danielriddell21/nemesis/internal/hud"
+	"github.com/danielriddell21/crucible/hud"
+
 	"github.com/danielriddell21/nemesis/internal/sim"
 	"github.com/danielriddell21/nemesis/internal/world"
 )
