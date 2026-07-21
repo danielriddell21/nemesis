@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 
+	ctel "github.com/danielriddell21/crucible/telemetry"
+
 	"github.com/danielriddell21/nemesis/internal/sim"
 )
 
@@ -74,25 +76,22 @@ func (e Event) Line() string {
 	}
 }
 
-type Subscriber interface {
-	OnEvent(Event)
-}
+// Subscriber receives each published event. It aliases the engine's
+// generic subscriber specialised to Event.
+type Subscriber = ctel.Subscriber[Event]
 
 const feedDepth = 64
 
+// Bus adapts the game's sim.Observer stream onto the engine's generic
+// event bus: it converts observations to events, mutes the constant
+// footstep drumbeat, and lets the engine handle fan-out and the recent
+// feed.
 type Bus struct {
-	subs   []Subscriber
-	recent []Event
+	inner *ctel.Bus[Event]
 }
 
 func NewBus(subs ...Subscriber) *Bus {
-	kept := make([]Subscriber, 0, len(subs))
-	for _, s := range subs {
-		if s != nil {
-			kept = append(kept, s)
-		}
-	}
-	return &Bus{subs: kept}
+	return &Bus{inner: ctel.NewBus(subs...).Configure(ctel.WithFeedDepth[Event](feedDepth))}
 }
 
 func (b *Bus) Observe(o sim.Observation) {
@@ -101,18 +100,11 @@ func (b *Bus) Observe(o sim.Observation) {
 		// discrete triggers, not the drumbeat.
 		return
 	}
-	e := FromObservation(o)
-	b.recent = append(b.recent, e)
-	if len(b.recent) > feedDepth {
-		b.recent = b.recent[len(b.recent)-feedDepth:]
-	}
-	for _, s := range b.subs {
-		s.OnEvent(e)
-	}
+	b.inner.Publish(FromObservation(o))
 }
 
 func (b *Bus) Recent() []Event {
-	return b.recent
+	return b.inner.Recent()
 }
 
 func (e Event) Kind() (sim.ObservationKind, bool) {
