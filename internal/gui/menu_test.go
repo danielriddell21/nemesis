@@ -35,12 +35,12 @@ func TestMenuMoveSelWraps(t *testing.T) {
 func TestMenuBackdropClearsWithoutGameFrame(t *testing.T) {
 	g := testGameForMenus(t)
 	// Stand in for a previously drawn screen: paint the whole canvas red.
-	g.canvas.fill(color.RGBA{R: 255, A: 255})
+	g.canvas.Fill(color.RGBA{R: 255, A: 255})
 	g.lastFrame = nil // settings opened from the title, no game rendered yet
 	g.composeMenu(g.settingsMenu)
 	// A top corner the menu text never reaches must be repainted to the menu
 	// backdrop, not left showing the stale red frame.
-	px := g.canvas.pixels()[:4]
+	px := g.canvas.Pixels()[:4]
 	if px[0] != menuBG.R || px[1] != menuBG.G || px[2] != menuBG.B {
 		t.Errorf("backdrop not cleared: corner = %v, want menuBG %v", px[:3], menuBG)
 	}

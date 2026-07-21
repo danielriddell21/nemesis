@@ -7,6 +7,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 
+	cv "github.com/danielriddell21/crucible/canvas"
 	"github.com/danielriddell21/crucible/hud"
 
 	iaudio "github.com/danielriddell21/nemesis/internal/audio"
@@ -50,7 +51,7 @@ type Game struct {
 	recorded       bool
 	quit           bool
 
-	canvas       *canvas
+	canvas       *cv.Canvas
 	lastFrame    []byte
 	titleMenu    *menu
 	pauseMenu    *menu
@@ -75,7 +76,7 @@ func NewGame(cfg Config, seed int64, overlay *hud.Overlay, audio *Audio, records
 		link:     cfg.Link,
 		baseSeed: seed,
 		state:    stateTitle,
-		canvas:   newCanvas(rc.Width, rc.Height),
+		canvas:   cv.New(rc.Width, rc.Height),
 	}
 	g.audio.Configure(settings)
 	g.buildMenus()
@@ -351,9 +352,9 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		g.lastFrame = append(g.lastFrame[:0], frame...)
 		screen.WritePixels(frame)
 	case stateTitle:
-		g.canvas.fill(menuBG)
+		g.canvas.Fill(menuBG)
 		g.titleMenu.draw(g.canvas)
-		screen.WritePixels(g.canvas.pixels())
+		screen.WritePixels(g.canvas.Pixels())
 	case statePaused:
 		g.drawMenuOverlay(screen, g.pauseMenu)
 	case stateSettings:
@@ -363,7 +364,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 
 func (g *Game) drawMenuOverlay(screen *ebiten.Image, m *menu) {
 	g.composeMenu(m)
-	screen.WritePixels(g.canvas.pixels())
+	screen.WritePixels(g.canvas.Pixels())
 }
 
 func (g *Game) composeMenu(m *menu) {
@@ -371,9 +372,9 @@ func (g *Game) composeMenu(m *menu) {
 	// exists to dim behind the menu; fall back to a solid backdrop so the menu
 	// does not draw over stale pixels.
 	if len(g.lastFrame) == 0 {
-		g.canvas.fill(menuBG)
+		g.canvas.Fill(menuBG)
 	} else {
-		g.canvas.dimFrom(g.lastFrame, 0.3)
+		g.canvas.DimFrom(g.lastFrame, 0.3)
 	}
 	m.draw(g.canvas)
 }

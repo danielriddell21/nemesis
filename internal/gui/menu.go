@@ -5,6 +5,8 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
+
+	cv "github.com/danielriddell21/crucible/canvas"
 )
 
 type menuItem struct {
@@ -67,11 +69,12 @@ var (
 	menuSelected = color.RGBA{R: 90, G: 220, B: 160, A: 255}
 )
 
-func (m *menu) draw(c *canvas) {
-	c.textCentered(70, m.title, menuTitle)
+func (m *menu) draw(c *cv.Canvas) {
+	w, _ := c.Size()
+	c.TextCentered(70, m.title, menuTitle)
 	y := 108
 	for _, line := range m.subtitle {
-		c.textCentered(y, line, menuDim)
+		c.TextCentered(y, line, menuDim)
 		y += 15
 	}
 	y = max(y+16, 176)
@@ -81,9 +84,9 @@ func (m *menu) draw(c *canvas) {
 		if i == m.sel {
 			col = menuSelected
 			label = "> " + label + " <"
-			c.rect(0, y-13, c.w, 18, color.RGBA{R: 24, G: 40, B: 34, A: 255})
+			c.Rect(0, y-13, w, 18, color.RGBA{R: 24, G: 40, B: 34, A: 255})
 		}
-		c.textCentered(y, label, col)
+		c.TextCentered(y, label, col)
 		y += 22
 	}
 }
