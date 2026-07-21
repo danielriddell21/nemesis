@@ -3,12 +3,20 @@ package world
 import (
 	"errors"
 	"fmt"
+
+	"github.com/danielriddell21/crucible/geom"
+	"github.com/danielriddell21/crucible/level"
+	"github.com/danielriddell21/crucible/worldgen"
 )
 
-const minDimension = 16
-
+// ErrUnreachable reports that no attempt produced a connected, playable deck.
 var ErrUnreachable = errors.New("world: exhausted attempts producing a connected level")
 
+// minDimension is the smallest deck edge; it matches crucible/level's own
+// floor so a request never generates a grid too small to furnish.
+const minDimension = 16
+
+// Config parameterises deck generation.
 type Config struct {
 	Width, Height int
 
@@ -46,60 +54,65 @@ func (c Config) normalized() Config {
 	return c
 }
 
+// Generate digs a deck: crucible/level runs the room-and-corridor pipeline,
+// carves the vent networks, and hangs the doors; nemesis's passes then mount
+// the consoles, recess the lockers, and set the light moods. It retries with
+// derived seeds until the layout is connected and playable.
 func Generate(cfg Config) (*Level, error) {
 	cfg = cfg.normalized()
-	for attempt := range cfg.MaxAttempts {
-		// Derive a per-attempt seed deterministically from the base seed.
-		sub := cfg.Seed + int64(attempt)*0x100000001b3
-		l := generateOnce(cfg, sub)
-		l.Seed = cfg.Seed
-		if viable(l, cfg) {
-			return l, nil
-		}
+	deck := &Level{}
+	passes := []level.Pass{
+		func(l *level.Level, _ *worldgen.RNG, rooms []Room) {
+			level.CarveVents(l, rooms, level.VentConfig{})
+		},
+		func(l *level.Level, rng *worldgen.RNG, _ []Room) {
+			level.PlaceDoors(l, rng, level.DoorConfig{})
+		},
+		func(l *level.Level, rng *worldgen.RNG, rooms []Room) {
+			deck.Consoles = placeConsoles(l, rng, rooms, cfg.Consoles)
+		},
+		func(l *level.Level, rng *worldgen.RNG, rooms []Room) {
+			deck.Lockers = placeLockers(l, rng, rooms, cfg.Lockers)
+		},
+		func(l *level.Level, rng *worldgen.RNG, rooms []Room) {
+			deck.Flicker = assignLight(l, rng, rooms)
+		},
 	}
-	return nil, fmt.Errorf("%w: %dx%d seed=%d", ErrUnreachable, cfg.Width, cfg.Height, cfg.Seed)
+	validate := func(l *level.Level) bool { return viable(l, deck, cfg) }
+
+	base, rooms, err := level.Generate(level.GenerateConfig{
+		Width:  cfg.Width,
+		Height: cfg.Height,
+		Seed:   cfg.Seed,
+	}, passes, validate)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %dx%d seed=%d", ErrUnreachable, cfg.Width, cfg.Height, cfg.Seed)
+	}
+	deck.Level = base
+	deck.Rooms = rooms
+	return deck, nil
 }
 
-func generateOnce(cfg Config, seed int64) *Level {
-	l := newLevel(cfg.Width, cfg.Height, seed)
-	g := newRNG(seed)
-
-	root := &bspNode{bounds: Room{X: 1, Y: 1, W: cfg.Width - 2, H: cfg.Height - 2}}
-	g.split(root, 0)
-	g.carveRooms(root, l)
-	g.connect(root, l)
-	g.carveStubs(l)
-
-	rooms := collectRooms(root)
-	l.Rooms = rooms
-	carveVents(l, rooms)
-	placeDoors(l, g)
-	placeSpawnAndExit(l, rooms)
-	placeConsoles(l, g, rooms, cfg.Consoles)
-	placeLockers(l, g, rooms, cfg.Lockers)
-	assignLight(l, g, rooms)
-	return l
-}
-
-func viable(l *Level, cfg Config) bool {
-	if l.Exit == l.Spawn || !reachable(l, l.Spawn, l.Exit, blocksWalls(l)) {
+func viable(l *level.Level, deck *Level, cfg Config) bool {
+	solid := func(c geom.Coord) bool { return l.Solid(c.X, c.Y) }
+	if l.Exit == l.Spawn || !worldgen.Reachable(l.W, l.H, l.Spawn, l.Exit, solid) {
 		return false
 	}
-	if len(l.Consoles) != cfg.Consoles {
+	if len(deck.Consoles) != cfg.Consoles {
 		return false
 	}
-	dist := distanceField(l, l.Spawn)
-	for _, c := range l.Consoles {
-		if !faceReachable(l, dist, c) {
+	field := worldgen.FloodDist(l.W, l.H, l.Spawn, solid, nil)
+	for _, c := range deck.Consoles {
+		if !faceReachable(field, c) {
 			return false
 		}
 	}
 	return len(l.VentMouths) >= 2
 }
 
-func faceReachable(l *Level, dist []int, console Coord) bool {
-	for _, n := range neighbors4(console) {
-		if l.InBounds(n.X, n.Y) && dist[n.Y*l.Width+n.X] >= 0 {
+func faceReachable(field worldgen.Field, console Coord) bool {
+	for _, n := range worldgen.Neighbors4(console) {
+		if field.At(n) >= 0 {
 			return true
 		}
 	}

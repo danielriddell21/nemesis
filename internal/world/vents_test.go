@@ -45,31 +45,15 @@ func TestVentsNeverBreachBorder(t *testing.T) {
 		if err != nil {
 			t.Fatalf("seed=%d: %v", seed, err)
 		}
-		for x := range l.Width {
-			if l.At(x, 0) != TileWall || l.At(x, l.Height-1) != TileWall {
+		for x := range l.W {
+			if l.At(x, 0) != TileWall || l.At(x, l.H-1) != TileWall {
 				t.Fatalf("seed=%d: border breached at x=%d", seed, x)
 			}
 		}
-		for y := range l.Height {
-			if l.At(0, y) != TileWall || l.At(l.Width-1, y) != TileWall {
+		for y := range l.H {
+			if l.At(0, y) != TileWall || l.At(l.W-1, y) != TileWall {
 				t.Fatalf("seed=%d: border breached at y=%d", seed, y)
 			}
 		}
-	}
-}
-
-func TestBFSPathEndpoints(t *testing.T) {
-	l := newLevel(8, 8, 0)
-	// Straight strip of wall from (1,1) to (5,1) inside the border.
-	ok := func(c Coord) bool { return c.Y == 1 && c.X >= 1 && c.X <= 5 }
-	path := bfsPath(l, Coord{X: 1, Y: 1}, Coord{X: 5, Y: 1}, ok)
-	if len(path) != 5 {
-		t.Fatalf("path length %d, want 5", len(path))
-	}
-	if path[0] != (Coord{X: 5, Y: 1}) || path[len(path)-1] != (Coord{X: 1, Y: 1}) {
-		t.Errorf("path endpoints wrong: %v", path)
-	}
-	if bfsPath(l, Coord{X: 1, Y: 1}, Coord{X: 6, Y: 6}, ok) != nil {
-		t.Error("unreachable destination should yield nil path")
 	}
 }

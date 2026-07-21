@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/danielriddell21/crucible/hud"
+	"github.com/danielriddell21/crucible/level"
 
 	"github.com/danielriddell21/nemesis/internal/sim"
 	"github.com/danielriddell21/nemesis/internal/world"
@@ -61,25 +62,20 @@ func TestFrameShowsWalls(t *testing.T) {
 }
 
 func boxLevel() *world.Level {
-	l := &world.Level{
-		Width:  8,
-		Height: 8,
-		Tiles:  make([]world.TileType, 64),
-		Light:  make([]float64, 64),
-		Spawn:  world.Coord{X: 1, Y: 1},
-		Exit:   world.Coord{X: 6, Y: 6},
-	}
+	base := level.New(8, 8, 0)
 	for y := range 8 {
 		for x := range 8 {
 			t := world.TileFloor
 			if x == 0 || y == 0 || x == 7 || y == 7 {
 				t = world.TileWall
 			}
-			l.Tiles[y*8+x] = t
-			l.Light[y*8+x] = 0.8
+			base.Set(x, y, t)
+			base.Light[base.Index(x, y)] = 0.8
 		}
 	}
-	return l
+	base.Spawn = world.Coord{X: 1, Y: 1}
+	base.Exit = world.Coord{X: 6, Y: 6}
+	return &world.Level{Level: base}
 }
 
 func TestTrackerDrawsWhenRaised(t *testing.T) {

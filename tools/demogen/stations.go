@@ -15,7 +15,7 @@ const (
 	montageGap  = 10
 )
 
-var montagePalette = map[world.TileType]color.RGBA{
+var montagePalette = map[world.Tile]color.RGBA{
 	world.TileWall:    {R: 38, G: 43, B: 51, A: 255},
 	world.TileFloor:   {R: 74, G: 80, B: 90, A: 255},
 	world.TileVent:    {R: 110, G: 92, B: 64, A: 255},
@@ -48,8 +48,8 @@ func stationsMontage(path string) error {
 }
 
 func drawStation(img *image.RGBA, l *world.Level, offX, offY int) {
-	for y := range l.Height {
-		for x := range l.Width {
+	for y := range l.H {
+		for x := range l.W {
 			c, ok := montagePalette[l.At(x, y)]
 			if !ok {
 				continue

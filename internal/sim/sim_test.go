@@ -4,33 +4,30 @@ import (
 	"math"
 	"testing"
 
+	"github.com/danielriddell21/crucible/level"
+
 	"github.com/danielriddell21/nemesis/internal/world"
 )
 
 // flatLevel builds a hand-made open arena with a wall border, spawn in the
 // north-west and exit in the south-east.
 func flatLevel(w, h int) *world.Level {
-	l := &world.Level{
-		Width:  w,
-		Height: h,
-		Tiles:  make([]world.TileType, w*h),
-		Light:  make([]float64, w*h),
-		Spawn:  world.Coord{X: 1, Y: 1},
-		Exit:   world.Coord{X: w - 2, Y: h - 2},
-	}
+	base := level.New(w, h, 0)
 	for y := range h {
 		for x := range w {
 			t := world.TileFloor
 			if x == 0 || y == 0 || x == w-1 || y == h-1 {
 				t = world.TileWall
 			}
-			l.Tiles[y*w+x] = t
-			l.Light[y*w+x] = 0.6
+			base.Set(x, y, t)
+			base.Light[base.Index(x, y)] = 0.6
 		}
 	}
-	l.Tiles[l.Spawn.Y*w+l.Spawn.X] = world.TileSpawn
-	l.Tiles[l.Exit.Y*w+l.Exit.X] = world.TileExit
-	return l
+	base.Spawn = world.Coord{X: 1, Y: 1}
+	base.Exit = world.Coord{X: w - 2, Y: h - 2}
+	base.Set(base.Spawn.X, base.Spawn.Y, world.TileSpawn)
+	base.Set(base.Exit.X, base.Exit.Y, world.TileExit)
+	return &world.Level{Level: base}
 }
 
 type recorder struct {

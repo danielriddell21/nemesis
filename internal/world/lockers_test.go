@@ -21,7 +21,7 @@ func TestLockersPlaced(t *testing.T) {
 			if !l.At(c.X, c.Y).Walkable() {
 				t.Errorf("seed=%d: locker %v not walkable", seed, c)
 			}
-			if !backsOntoWall(l, c) {
+			if !backsOntoWall(l.Level, c) {
 				t.Errorf("seed=%d: locker %v does not back onto a wall", seed, c)
 			}
 			if c == l.Spawn {

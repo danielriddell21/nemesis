@@ -125,19 +125,19 @@ func (v *Visualiser) render() {
 func (v *Visualiser) mapTransform() (ts, offX, offY int) {
 	l := v.m.level
 	availW := visWindowW - visPanelW
-	ts = min(availW/l.Width, visWindowH/l.Height)
+	ts = min(availW/l.W, visWindowH/l.H)
 	if ts < 1 {
 		ts = 1
 	}
-	offX = (availW - l.Width*ts) / 2
-	offY = (visWindowH - l.Height*ts) / 2
+	offX = (availW - l.W*ts) / 2
+	offY = (visWindowH - l.H*ts) / 2
 	return ts, offX, offY
 }
 
 func (v *Visualiser) renderTiles(ts, offX, offY int) {
 	l := v.m.level
-	for y := range l.Height {
-		for x := range l.Width {
+	for y := range l.H {
+		for x := range l.W {
 			v.rect(offX+x*ts, offY+y*ts, ts, ts, v.tileColor(l, x, y))
 		}
 	}

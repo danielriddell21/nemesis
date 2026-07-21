@@ -14,7 +14,7 @@ func FuzzGenerate(f *testing.F) {
 		if err != nil {
 			return
 		}
-		if !reachable(l, l.Spawn, l.Exit, blocksWalls(l)) {
+		if !exitReachable(l) {
 			t.Fatalf("exit unreachable: w=%d h=%d seed=%d\n%s", w, h, seed, l)
 		}
 		if len(l.Consoles) == 0 {
