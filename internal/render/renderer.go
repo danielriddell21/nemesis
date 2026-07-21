@@ -4,7 +4,9 @@ import (
 	"image/color"
 	"math"
 
+	"github.com/danielriddell21/crucible/geom"
 	"github.com/danielriddell21/crucible/hud"
+	"github.com/danielriddell21/crucible/raycast"
 
 	"github.com/danielriddell21/nemesis/internal/sim"
 )
@@ -41,31 +43,13 @@ func (r *Renderer) Config() Config { return r.cfg }
 func (r *Renderer) SetFOV(fov float64) { r.cfg.FOV = fov }
 
 func (r *Renderer) Frame(g *sim.Game, now float64) []byte {
-	cam := newCamera(g.Player.Pos, g.Player.Angle, r.cfg.FOV)
+	cam := raycast.NewCamera(geom.Vec2{X: g.Player.Pos.X, Y: g.Player.Pos.Y}, g.Player.Angle, r.cfg.FOV)
 	r.drawBackdrop()
 	r.drawWalls(g, cam, now)
 	r.drawSprites(g, cam, now)
 	r.drawEffects(g, now)
 	r.drawHUD(g, now)
 	return r.fb
-}
-
-type camera struct {
-	pos            sim.Vec2
-	dirX, dirY     float64
-	planeX, planeY float64
-}
-
-func newCamera(pos sim.Vec2, angle, fov float64) camera {
-	planeLen := math.Tan(fov / 2)
-	dirX, dirY := math.Cos(angle), math.Sin(angle)
-	return camera{
-		pos:    pos,
-		dirX:   dirX,
-		dirY:   dirY,
-		planeX: -dirY * planeLen,
-		planeY: dirX * planeLen,
-	}
 }
 
 func (r *Renderer) drawBackdrop() {

@@ -11,13 +11,11 @@ import (
 	"github.com/danielriddell21/nemesis/internal/world"
 )
 
-func (r *Renderer) drawWalls(g *sim.Game, cam camera, now float64) {
+func (r *Renderer) drawWalls(g *sim.Game, cam raycast.Camera, now float64) {
 	w, h := r.cfg.Width, r.cfg.Height
 	for x := range w {
-		cameraX := 2*float64(x)/float64(w) - 1
-		rayX := cam.dirX + cam.planeX*cameraX
-		rayY := cam.dirY + cam.planeY*cameraX
-		hit := castRay(g, cam.pos, rayX, rayY)
+		rayX, rayY := cam.RayDir(x, w)
+		hit := castRay(g, cam.Pos, rayX, rayY)
 		r.zbuf[x] = hit.Dist
 
 		lineHeight := int(float64(h) / hit.Dist)
@@ -47,21 +45,20 @@ func (r *Renderer) drawWalls(g *sim.Game, cam camera, now float64) {
 	}
 }
 
-func castRay(g *sim.Game, pos sim.Vec2, rayX, rayY float64) raycast.Hit {
-	origin := geom.Vec2{X: pos.X, Y: pos.Y}
-	mapX, mapY := int(math.Floor(pos.X)), int(math.Floor(pos.Y))
+func castRay(g *sim.Game, origin geom.Vec2, rayX, rayY float64) raycast.Hit {
+	mapX, mapY := int(math.Floor(origin.X)), int(math.Floor(origin.Y))
 	deltaX, deltaY := math.Abs(1/rayX), math.Abs(1/rayY)
 	var stepX, stepY int
 	var sideX, sideY float64
 	if rayX < 0 {
-		stepX, sideX = -1, (pos.X-float64(mapX))*deltaX
+		stepX, sideX = -1, (origin.X-float64(mapX))*deltaX
 	} else {
-		stepX, sideX = 1, (float64(mapX)+1-pos.X)*deltaX
+		stepX, sideX = 1, (float64(mapX)+1-origin.X)*deltaX
 	}
 	if rayY < 0 {
-		stepY, sideY = -1, (pos.Y-float64(mapY))*deltaY
+		stepY, sideY = -1, (origin.Y-float64(mapY))*deltaY
 	} else {
-		stepY, sideY = 1, (float64(mapY)+1-pos.Y)*deltaY
+		stepY, sideY = 1, (float64(mapY)+1-origin.Y)*deltaY
 	}
 	side := 0
 	prevX, prevY := mapX, mapY

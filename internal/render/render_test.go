@@ -5,6 +5,7 @@ import (
 	"math"
 	"testing"
 
+	"github.com/danielriddell21/crucible/geom"
 	"github.com/danielriddell21/crucible/hud"
 	"github.com/danielriddell21/crucible/level"
 
@@ -124,7 +125,7 @@ func TestOverlayMessageDrawn(t *testing.T) {
 
 func TestCastRayHitsBorder(t *testing.T) {
 	g := sim.New(boxLevel())
-	hit := castRay(g, sim.Vec2{X: 4.5, Y: 4.5}, 1, 0)
+	hit := castRay(g, geom.Vec2{X: 4.5, Y: 4.5}, 1, 0)
 	if hit.Cell != (world.Coord{X: 7, Y: 4}) {
 		t.Errorf("ray hit %v, want the east border wall", hit.Cell)
 	}
