@@ -62,9 +62,9 @@ func floodDist(l *Level, src Coord, solid solidFn) []int {
 
 func neighbors4(c Coord) [4]Coord {
 	return [4]Coord{
-		{c.X + 1, c.Y},
-		{c.X - 1, c.Y},
-		{c.X, c.Y + 1},
-		{c.X, c.Y - 1},
+		{X: c.X + 1, Y: c.Y},
+		{X: c.X - 1, Y: c.Y},
+		{X: c.X, Y: c.Y + 1},
+		{X: c.X, Y: c.Y - 1},
 	}
 }

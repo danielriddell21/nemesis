@@ -37,12 +37,12 @@ func (g *rng) split(n *bspNode, depth int) {
 	vertical := chooseSplitAxis(g, w, h, canV, canH)
 	if vertical {
 		at := g.between(minLeaf, w-minLeaf)
-		n.left = &bspNode{bounds: Room{n.bounds.X, n.bounds.Y, at, h}}
-		n.right = &bspNode{bounds: Room{n.bounds.X + at, n.bounds.Y, w - at, h}}
+		n.left = &bspNode{bounds: Room{X: n.bounds.X, Y: n.bounds.Y, W: at, H: h}}
+		n.right = &bspNode{bounds: Room{X: n.bounds.X + at, Y: n.bounds.Y, W: w - at, H: h}}
 	} else {
 		at := g.between(minLeaf, h-minLeaf)
-		n.left = &bspNode{bounds: Room{n.bounds.X, n.bounds.Y, w, at}}
-		n.right = &bspNode{bounds: Room{n.bounds.X, n.bounds.Y + at, w, h - at}}
+		n.left = &bspNode{bounds: Room{X: n.bounds.X, Y: n.bounds.Y, W: w, H: at}}
+		n.right = &bspNode{bounds: Room{X: n.bounds.X, Y: n.bounds.Y + at, W: w, H: h - at}}
 	}
 	g.split(n.left, depth+1)
 	g.split(n.right, depth+1)
@@ -82,7 +82,7 @@ func (g *rng) carveRooms(n *bspNode, l *Level) {
 	rh := g.between(minRoom, maxH)
 	rx := b.X + roomPad + g.intn(maxW-rw+1)
 	ry := b.Y + roomPad + g.intn(maxH-rh+1)
-	room := Room{rx, ry, rw, rh}
+	room := Room{X: rx, Y: ry, W: rw, H: rh}
 	n.room = &room
 	for y := ry; y < ry+rh; y++ {
 		for x := rx; x < rx+rw; x++ {
