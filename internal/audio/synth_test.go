@@ -2,8 +2,9 @@ package audio
 
 import (
 	"bytes"
-	"math"
 	"testing"
+
+	"github.com/danielriddell21/crucible/synth"
 
 	"github.com/danielriddell21/nemesis/internal/sim"
 )
@@ -16,7 +17,7 @@ func TestSynthCoversAllCues(t *testing.T) {
 		if !ok || len(pcm) == 0 {
 			t.Errorf("cue %d has no PCM", c)
 		}
-		if len(pcm)%bytesPerFrame != 0 {
+		if len(pcm)%synth.BytesPerFrame != 0 {
 			t.Errorf("cue %d PCM not frame-aligned", c)
 		}
 	}
@@ -120,39 +121,4 @@ func TestCueForDecoy(t *testing.T) {
 	}
 }
 
-func TestPanCentresAndSwings(t *testing.T) {
-	// Dead ahead: balanced. A sound to the right favours the right channel.
-	l, r := Pan(0)
-	if math.Abs(l-r) > 1e-9 {
-		t.Errorf("ahead should be balanced, got L=%v R=%v", l, r)
-	}
-	l, r = Pan(math.Pi / 2) // hard right
-	if r <= l {
-		t.Errorf("hard right should favour the right channel, got L=%v R=%v", l, r)
-	}
-	l, r = Pan(-math.Pi / 2) // hard left
-	if l <= r {
-		t.Errorf("hard left should favour the left channel, got L=%v R=%v", l, r)
-	}
-	// Constant power: L^2 + R^2 stays ~1 across the arc.
-	for _, b := range []float64{-1.2, -0.4, 0, 0.7, 1.5} {
-		l, r = Pan(b)
-		if p := l*l + r*r; math.Abs(p-1) > 1e-9 {
-			t.Errorf("Pan(%v): power %v, want 1", b, p)
-		}
-	}
-}
-
-func TestPannedScalesChannels(t *testing.T) {
-	// One stereo frame at full scale on both channels; mute the left, keep right.
-	pcm := []byte{0xff, 0x7f, 0xff, 0x7f} // L=+32767, R=+32767
-	out := Panned(pcm, 0, 1)
-	l := int16(uint16(out[0]) | uint16(out[1])<<8)
-	r := int16(uint16(out[2]) | uint16(out[3])<<8)
-	if l != 0 {
-		t.Errorf("left channel should be muted, got %d", l)
-	}
-	if r != 32767 {
-		t.Errorf("right channel should be untouched, got %d", r)
-	}
-}
+// Pan and Panned now live in crucible/synth and are covered by its tests.

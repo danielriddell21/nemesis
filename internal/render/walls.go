@@ -4,6 +4,9 @@ import (
 	"image/color"
 	"math"
 
+	"github.com/danielriddell21/crucible/geom"
+	"github.com/danielriddell21/crucible/raycast"
+
 	"github.com/danielriddell21/nemesis/internal/sim"
 	"github.com/danielriddell21/nemesis/internal/world"
 )
@@ -15,16 +18,16 @@ func (r *Renderer) drawWalls(g *sim.Game, cam camera, now float64) {
 		rayX := cam.dirX + cam.planeX*cameraX
 		rayY := cam.dirY + cam.planeY*cameraX
 		hit := castRay(g, cam.pos, rayX, rayY)
-		r.zbuf[x] = hit.dist
+		r.zbuf[x] = hit.Dist
 
-		lineHeight := int(float64(h) / hit.dist)
+		lineHeight := int(float64(h) / hit.Dist)
 		top := h/2 - lineHeight/2
 		bottom := h/2 + lineHeight/2
 
-		tex := r.wallTexture(g, hit.cell)
-		texX := int(hit.wallX * texSize)
+		tex := r.wallTexture(g, hit.Cell)
+		texX := int(hit.WallX * texSize)
 		light := r.faceLight(g, hit, now)
-		if hit.side == 1 {
+		if hit.Side == 1 {
 			light *= 0.8
 		}
 		step := float64(tex.h) / float64(lineHeight)
@@ -39,20 +42,13 @@ func (r *Renderer) drawWalls(g *sim.Game, cam camera, now float64) {
 		for y := top; y < bottom; y++ {
 			c := tex.at(texX, int(texPos))
 			texPos += step
-			r.putShaded(x, y, c, light, hit.dist)
+			r.putShaded(x, y, c, light, hit.Dist)
 		}
 	}
 }
 
-type rayHit struct {
-	cell  world.Coord
-	prev  world.Coord
-	dist  float64
-	side  int
-	wallX float64
-}
-
-func castRay(g *sim.Game, pos sim.Vec2, rayX, rayY float64) rayHit {
+func castRay(g *sim.Game, pos sim.Vec2, rayX, rayY float64) raycast.Hit {
+	origin := geom.Vec2{X: pos.X, Y: pos.Y}
 	mapX, mapY := int(math.Floor(pos.X)), int(math.Floor(pos.Y))
 	deltaX, deltaY := math.Abs(1/rayX), math.Abs(1/rayY)
 	var stepX, stepY int
@@ -82,7 +78,7 @@ func castRay(g *sim.Game, pos sim.Vec2, rayX, rayY float64) rayHit {
 		}
 		cell := world.Coord{X: mapX, Y: mapY}
 		if g.World.Level.At(mapX, mapY) == world.TileDoor && g.World.DoorOpen(cell) {
-			if hit, blocked := doorColumn(g, pos, rayX, rayY, sideX, sideY, deltaX, deltaY, side, cell, prevX, prevY); blocked {
+			if hit, blocked := doorColumn(g, origin, rayX, rayY, sideX, sideY, deltaX, deltaY, side, cell, prevX, prevY); blocked {
 				return hit
 			}
 			continue
@@ -91,46 +87,29 @@ func castRay(g *sim.Game, pos sim.Vec2, rayX, rayY float64) rayHit {
 			break
 		}
 	}
-	dist := max(boundaryDist(sideX, sideY, deltaX, deltaY, side), 1e-4)
-	return rayHit{
-		cell:  world.Coord{X: mapX, Y: mapY},
-		prev:  world.Coord{X: prevX, Y: prevY},
-		dist:  dist,
-		side:  side,
-		wallX: boundaryWallX(pos, rayX, rayY, dist, side),
+	dist := max(raycast.BoundaryDist(sideX, sideY, deltaX, deltaY, side), 1e-4)
+	return raycast.Hit{
+		Cell:  world.Coord{X: mapX, Y: mapY},
+		Prev:  world.Coord{X: prevX, Y: prevY},
+		Dist:  dist,
+		Side:  side,
+		WallX: raycast.BoundaryWallX(origin, rayX, rayY, dist, side),
 	}
 }
 
 // doorColumn decides whether a ray crossing an opening door is stopped by the
 // sliding panel (returning the hit) or slips through its retracted part.
-func doorColumn(g *sim.Game, pos sim.Vec2, rayX, rayY, sideX, sideY, deltaX, deltaY float64, side int, cell world.Coord, prevX, prevY int) (rayHit, bool) {
+func doorColumn(g *sim.Game, origin geom.Vec2, rayX, rayY, sideX, sideY, deltaX, deltaY float64, side int, cell world.Coord, prevX, prevY int) (raycast.Hit, bool) {
 	slide := g.World.DoorSlide(cell)
 	if slide >= 1 {
-		return rayHit{}, false // fully retracted: the doorway is open
+		return raycast.Hit{}, false // fully retracted: the doorway is open
 	}
-	d := boundaryDist(sideX, sideY, deltaX, deltaY, side)
-	wx := boundaryWallX(pos, rayX, rayY, d, side)
+	d := raycast.BoundaryDist(sideX, sideY, deltaX, deltaY, side)
+	wx := raycast.BoundaryWallX(origin, rayX, rayY, d, side)
 	if wx < slide {
-		return rayHit{}, false // this column has retracted; the ray passes
+		return raycast.Hit{}, false // this column has retracted; the ray passes
 	}
-	return rayHit{cell: cell, prev: world.Coord{X: prevX, Y: prevY}, dist: max(d, 1e-4), side: side, wallX: wx}, true
-}
-
-func boundaryDist(sideX, sideY, deltaX, deltaY float64, side int) float64 {
-	if side == 0 {
-		return sideX - deltaX
-	}
-	return sideY - deltaY
-}
-
-func boundaryWallX(pos sim.Vec2, rayX, rayY, dist float64, side int) float64 {
-	var wx float64
-	if side == 0 {
-		wx = pos.Y + dist*rayY
-	} else {
-		wx = pos.X + dist*rayX
-	}
-	return wx - math.Floor(wx)
+	return raycast.Hit{Cell: cell, Prev: world.Coord{X: prevX, Y: prevY}, Dist: max(d, 1e-4), Side: side, WallX: wx}, true
 }
 
 func (r *Renderer) wallTexture(g *sim.Game, cell world.Coord) *texture {
@@ -147,18 +126,18 @@ func (r *Renderer) wallTexture(g *sim.Game, cell world.Coord) *texture {
 	}
 }
 
-func (r *Renderer) faceLight(g *sim.Game, hit rayHit, now float64) float64 {
+func (r *Renderer) faceLight(g *sim.Game, hit raycast.Hit, now float64) float64 {
 	// A wall face borrows the light of the open cell the ray crossed last, so
 	// faces bounding a dark corridor stay dark.
 	l := g.World.Level
-	light := l.LightAt(hit.prev.X, hit.prev.Y)
+	light := l.LightAt(hit.Prev.X, hit.Prev.Y)
 	if light <= 0 {
 		light = 0.3
 	}
-	if l.At(hit.prev.X, hit.prev.Y) == world.TileVent {
+	if l.At(hit.Prev.X, hit.Prev.Y) == world.TileVent {
 		light = math.Min(light, 0.2)
 	}
-	if l.FlickerAt(hit.prev.X, hit.prev.Y) {
+	if l.FlickerAt(hit.Prev.X, hit.Prev.Y) {
 		light *= flicker(now)
 	}
 	return light

@@ -46,15 +46,3 @@ func TestSettingsCorruptResetsToDefault(t *testing.T) {
 		t.Error("corrupt settings should fall back to defaults")
 	}
 }
-
-func TestBarMeter(t *testing.T) {
-	if bar(0) != "----------" {
-		t.Errorf("bar(0) = %q", bar(0))
-	}
-	if bar(1) != "##########" {
-		t.Errorf("bar(1) = %q", bar(1))
-	}
-	if bar(0.5) != "#####-----" {
-		t.Errorf("bar(0.5) = %q", bar(0.5))
-	}
-}

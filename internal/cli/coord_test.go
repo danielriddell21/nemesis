@@ -3,11 +3,11 @@ package cli
 import (
 	"bytes"
 	"encoding/json"
-	"io"
 	"reflect"
 	"strings"
 	"testing"
-	"time"
+
+	"github.com/danielriddell21/crucible/hub"
 
 	"github.com/danielriddell21/nemesis/internal/gui"
 )
@@ -36,97 +36,24 @@ func TestMsgJSONRoundTrip(t *testing.T) {
 	}
 }
 
-func TestHubBroadcastsToOthersAndStoresHello(t *testing.T) {
-	h := newHub("self")
-	a := make(chan gui.Msg, 4)
-	b := make(chan gui.Msg, 4)
-	ida := h.addParticipant(a, nil)
-	h.addParticipant(b, nil)
-
-	h.handle(ida, gui.Msg{Type: "hello", Seed: 7})
-
-	select {
-	case m := <-b:
-		if m.Seed != 7 {
-			t.Fatalf("b received seed %d, want 7", m.Seed)
+func TestRouteClassifiesMessages(t *testing.T) {
+	// The opening hello is shared state a late visualiser needs; per-tick
+	// batches only fan out; anything else is ignored. The hub mechanics behind
+	// each route are covered by crucible/hub's own tests.
+	tests := []struct {
+		typ  string
+		want hub.Route
+	}{
+		{"hello", hub.RouteState},
+		{"state", hub.RouteBroadcast},
+		{"events", hub.RouteBroadcast},
+		{"", hub.RouteNone},
+		{"unknown", hub.RouteNone},
+	}
+	for _, tt := range tests {
+		if got := route(gui.Msg{Type: tt.typ}); got != tt.want {
+			t.Errorf("route(%q) = %v, want %v", tt.typ, got, tt.want)
 		}
-	default:
-		t.Fatal("other participant did not receive the hello")
-	}
-	select {
-	case <-a:
-		t.Fatal("sender should not receive its own message")
-	default:
-	}
-	if h.last.Seed != 7 {
-		t.Fatalf("hub.last seed = %d, want 7 stored", h.last.Seed)
-	}
-}
-
-func TestHubSendsLastHelloToNewParticipant(t *testing.T) {
-	// A visualiser that arrives after the run began still needs the level.
-	h := newHub("self")
-	ida := h.addParticipant(make(chan gui.Msg, 4), nil)
-	h.handle(ida, gui.Msg{Type: "hello", Seed: 3})
-
-	late := make(chan gui.Msg, 4)
-	h.addParticipant(late, nil)
-	select {
-	case m := <-late:
-		if m.Seed != 3 {
-			t.Fatalf("late participant got seed %d, want 3", m.Seed)
-		}
-	default:
-		t.Fatal("late participant did not receive the last hello")
-	}
-}
-
-func TestHubDropClosesChannel(t *testing.T) {
-	h := newHub("self")
-	a := make(chan gui.Msg, 4)
-	id := h.addParticipant(a, nil)
-	h.handle(id, gui.Msg{Type: eofType})
-	if _, ok := <-a; ok {
-		t.Fatal("participant channel not closed after drop")
-	}
-}
-
-func TestChildLinkBridgesStdio(t *testing.T) {
-	inR, inW := io.Pipe()
-	var out bytes.Buffer
-	link := childLink(inR, &out)
-
-	go func() {
-		enc := json.NewEncoder(inW)
-		_ = enc.Encode(gui.Msg{Type: "hello", Seed: 42})
-		_ = inW.Close()
-	}()
-
-	select {
-	case m := <-link.In:
-		if m.Type != "hello" || m.Seed != 42 {
-			t.Fatalf("got %+v", m)
-		}
-	case <-time.After(2 * time.Second):
-		t.Fatal("no message arrived from stdin")
-	}
-	// Stdin closing must close In so the window can terminate.
-	select {
-	case _, ok := <-link.In:
-		if ok {
-			t.Fatal("expected closed In after EOF")
-		}
-	case <-time.After(2 * time.Second):
-		t.Fatal("In not closed after stdin EOF")
-	}
-
-	link.Out <- gui.Msg{Type: "events"}
-	deadline := time.Now().Add(2 * time.Second)
-	for out.Len() == 0 && time.Now().Before(deadline) {
-		time.Sleep(10 * time.Millisecond)
-	}
-	if !strings.Contains(out.String(), `"events"`) {
-		t.Fatalf("stdout writer produced %q", out.String())
 	}
 }
 

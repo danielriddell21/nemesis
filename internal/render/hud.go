@@ -10,7 +10,8 @@ import (
 	"golang.org/x/image/font/basicfont"
 	"golang.org/x/image/math/fixed"
 
-	"github.com/danielriddell21/nemesis/internal/hud"
+	"github.com/danielriddell21/crucible/hud"
+
 	"github.com/danielriddell21/nemesis/internal/sim"
 )
 

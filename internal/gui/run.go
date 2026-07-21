@@ -6,7 +6,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2"
 
-	"github.com/danielriddell21/nemesis/internal/hud"
+	"github.com/danielriddell21/crucible/hud"
 )
 
 func Run(cfg Config) error {

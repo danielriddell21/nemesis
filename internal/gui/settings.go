@@ -1,10 +1,9 @@
 package gui
 
 import (
-	"encoding/json"
 	"fmt"
-	"os"
-	"path/filepath"
+
+	"github.com/danielriddell21/crucible/store"
 )
 
 type Settings struct {
@@ -28,11 +27,8 @@ func defaultSettings() Settings {
 }
 
 func settingsPath() string {
-	dir, err := os.UserConfigDir()
-	if err != nil {
-		return ""
-	}
-	return filepath.Join(dir, "nemesis", "settings.json")
+	p, _ := store.Path("nemesis", "settings.json")
+	return p
 }
 
 func LoadSettings() Settings {
@@ -40,19 +36,8 @@ func LoadSettings() Settings {
 }
 
 func loadSettings(path string) Settings {
-	s := defaultSettings()
+	s := store.Load(path, defaultSettings())
 	s.path = path
-	if path == "" {
-		return s
-	}
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return s
-	}
-	if json.Unmarshal(data, &s) != nil {
-		s = defaultSettings()
-		s.path = path
-	}
 	return s.clamped()
 }
 
@@ -65,18 +50,8 @@ func (s Settings) clamped() Settings {
 }
 
 func (s Settings) save() error {
-	if s.path == "" {
-		return nil
-	}
-	if err := os.MkdirAll(filepath.Dir(s.path), 0o750); err != nil {
-		return fmt.Errorf("settings dir: %w", err)
-	}
-	data, err := json.MarshalIndent(s, "", "  ")
-	if err != nil {
-		return fmt.Errorf("settings encode: %w", err)
-	}
-	if err := os.WriteFile(s.path, data, 0o600); err != nil {
-		return fmt.Errorf("settings write: %w", err)
+	if err := store.Save(s.path, s); err != nil {
+		return fmt.Errorf("save settings: %w", err)
 	}
 	return nil
 }

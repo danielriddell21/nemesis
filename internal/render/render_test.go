@@ -5,7 +5,8 @@ import (
 	"math"
 	"testing"
 
-	"github.com/danielriddell21/nemesis/internal/hud"
+	"github.com/danielriddell21/crucible/hud"
+
 	"github.com/danielriddell21/nemesis/internal/sim"
 	"github.com/danielriddell21/nemesis/internal/world"
 )
@@ -128,11 +129,11 @@ func TestOverlayMessageDrawn(t *testing.T) {
 func TestCastRayHitsBorder(t *testing.T) {
 	g := sim.New(boxLevel())
 	hit := castRay(g, sim.Vec2{X: 4.5, Y: 4.5}, 1, 0)
-	if hit.cell != (world.Coord{X: 7, Y: 4}) {
-		t.Errorf("ray hit %v, want the east border wall", hit.cell)
+	if hit.Cell != (world.Coord{X: 7, Y: 4}) {
+		t.Errorf("ray hit %v, want the east border wall", hit.Cell)
 	}
-	if math.Abs(hit.dist-2.5) > 1e-9 {
-		t.Errorf("hit distance %v, want 2.5", hit.dist)
+	if math.Abs(hit.Dist-2.5) > 1e-9 {
+		t.Errorf("hit distance %v, want 2.5", hit.Dist)
 	}
 }
 

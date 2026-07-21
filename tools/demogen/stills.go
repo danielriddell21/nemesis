@@ -8,8 +8,9 @@ import (
 	"math"
 	"os"
 
+	"github.com/danielriddell21/crucible/hud"
+
 	"github.com/danielriddell21/nemesis/internal/gui"
-	"github.com/danielriddell21/nemesis/internal/hud"
 	"github.com/danielriddell21/nemesis/internal/render"
 	"github.com/danielriddell21/nemesis/internal/sim"
 	"github.com/danielriddell21/nemesis/internal/telemetry"

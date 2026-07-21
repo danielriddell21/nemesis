@@ -1,22 +1,18 @@
 package world
 
-import "strings"
+import (
+	"strings"
 
-type Coord struct {
-	X, Y int
-}
+	"github.com/danielriddell21/crucible/geom"
+)
 
-type Room struct {
-	X, Y, W, H int
-}
+// Coord is a tile-grid cell, shared with the rest of the family through
+// crucible/geom.
+type Coord = geom.Coord
 
-func (r Room) Center() Coord {
-	return Coord{X: r.X + r.W/2, Y: r.Y + r.H/2}
-}
-
-func (r Room) Contains(c Coord) bool {
-	return c.X >= r.X && c.X < r.X+r.W && c.Y >= r.Y && c.Y < r.Y+r.H
-}
+// Room is an axis-aligned span of tiles, shared with the family through
+// crucible/geom.
+type Room = geom.Rect
 
 type Level struct {
 	Width, Height int

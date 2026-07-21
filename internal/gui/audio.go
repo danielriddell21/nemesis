@@ -7,6 +7,8 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2/audio"
 
+	"github.com/danielriddell21/crucible/synth"
+
 	iaudio "github.com/danielriddell21/nemesis/internal/audio"
 	"github.com/danielriddell21/nemesis/internal/sim"
 	"github.com/danielriddell21/nemesis/internal/telemetry"
@@ -94,8 +96,8 @@ func (a *Audio) PlayEvent(e telemetry.Event) {
 	}
 	// Pan the sound by its bearing relative to where the player is looking.
 	bearing := math.Atan2(dy, dx) - a.facing
-	left, right := iaudio.Pan(bearing)
-	p := a.ctx.NewPlayerFromBytes(iaudio.Panned(pcm, left, right))
+	left, right := synth.Pan(bearing)
+	p := a.ctx.NewPlayerFromBytes(synth.Panned(pcm, left, right))
 	p.SetVolume(gain)
 	p.Play()
 	a.reap(p)
