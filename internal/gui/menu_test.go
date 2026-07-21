@@ -16,21 +16,7 @@ func testGameForMenus(t *testing.T) *Game {
 	return g
 }
 
-func TestMenuMoveSelWraps(t *testing.T) {
-	m := &menu{items: []menuItem{{}, {}, {}}}
-	m.moveSel(-1)
-	if m.sel != 2 {
-		t.Errorf("moving up from the top should wrap to the last item, got %d", m.sel)
-	}
-	m.moveSel(1)
-	if m.sel != 0 {
-		t.Errorf("moving down from the bottom should wrap to the first item, got %d", m.sel)
-	}
-	m.moveSel(1)
-	if m.sel != 1 {
-		t.Errorf("moving down should advance one item, got %d", m.sel)
-	}
-}
+// Menu selection wraparound is covered by crucible/menu's own tests.
 
 func TestMenuBackdropClearsWithoutGameFrame(t *testing.T) {
 	g := testGameForMenus(t)
@@ -51,7 +37,7 @@ func TestTitleMenuStartsRun(t *testing.T) {
 	if g.state != stateTitle {
 		t.Fatal("game should open on the title screen")
 	}
-	g.titleMenu.items[0].action() // DESCEND
+	g.titleMenu.Items[0].Action() // DESCEND
 	if g.state != statePlaying {
 		t.Errorf("descend should start play, state = %v", g.state)
 	}
@@ -68,13 +54,13 @@ func TestSettingsAdjustAndReturn(t *testing.T) {
 	}
 	// SOUND toggle is the first row.
 	before := g.settings.Sound
-	g.settingsMenu.items[0].adjust(0)
+	g.settingsMenu.Items[0].Adjust(0)
 	if g.settings.Sound == before {
 		t.Error("adjusting sound should toggle it")
 	}
 	// SFX volume down clamps at zero.
 	g.settings.SFXVolume = 0.05
-	g.settingsMenu.items[1].adjust(-1)
+	g.settingsMenu.Items[1].Adjust(-1)
 	if g.settings.SFXVolume != 0 {
 		t.Errorf("sfx volume should clamp to 0, got %v", g.settings.SFXVolume)
 	}

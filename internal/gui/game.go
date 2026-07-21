@@ -9,6 +9,7 @@ import (
 
 	cv "github.com/danielriddell21/crucible/canvas"
 	"github.com/danielriddell21/crucible/hud"
+	"github.com/danielriddell21/crucible/menu"
 
 	iaudio "github.com/danielriddell21/nemesis/internal/audio"
 	"github.com/danielriddell21/nemesis/internal/render"
@@ -53,9 +54,9 @@ type Game struct {
 
 	canvas       *cv.Canvas
 	lastFrame    []byte
-	titleMenu    *menu
-	pauseMenu    *menu
-	settingsMenu *menu
+	titleMenu    *menu.Menu
+	pauseMenu    *menu.Menu
+	settingsMenu *menu.Menu
 
 	haveMouse  bool
 	lastMouseX int
@@ -94,7 +95,7 @@ func (g *Game) Update() error {
 	g.setCursor()
 	switch g.state {
 	case stateTitle:
-		g.playMenuSound(g.titleMenu.update())
+		g.playMenuSound(g.titleMenu.Update(menu.Poll()))
 	case statePlaying:
 		return g.updatePlaying()
 	case statePaused:
@@ -155,27 +156,27 @@ func (g *Game) advanceOnEnter() {
 
 func (g *Game) updatePaused() {
 	if inpututil.IsKeyJustPressed(ebiten.KeyEscape) {
-		g.playMenuSound(soundSelect)
+		g.playMenuSound(menu.SoundSelect)
 		g.state = statePlaying
 		return
 	}
-	g.playMenuSound(g.pauseMenu.update())
+	g.playMenuSound(g.pauseMenu.Update(menu.Poll()))
 }
 
 func (g *Game) updateSettings() {
 	if inpututil.IsKeyJustPressed(ebiten.KeyEscape) {
-		g.playMenuSound(soundSelect)
+		g.playMenuSound(menu.SoundSelect)
 		g.leaveSettings()
 		return
 	}
-	g.playMenuSound(g.settingsMenu.update())
+	g.playMenuSound(g.settingsMenu.Update(menu.Poll()))
 }
 
-func (g *Game) playMenuSound(s menuSound) {
+func (g *Game) playMenuSound(s menu.Sound) {
 	switch s {
-	case soundMove:
+	case menu.SoundMove:
 		g.audio.PlayUI(iaudio.CueMenuMove)
-	case soundSelect:
+	case menu.SoundSelect:
 		g.audio.PlayUI(iaudio.CueMenuSelect)
 	}
 }
@@ -353,7 +354,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		screen.WritePixels(frame)
 	case stateTitle:
 		g.canvas.Fill(menuBG)
-		g.titleMenu.draw(g.canvas)
+		g.titleMenu.Draw(g.canvas, menu.DefaultTheme())
 		screen.WritePixels(g.canvas.Pixels())
 	case statePaused:
 		g.drawMenuOverlay(screen, g.pauseMenu)
@@ -362,12 +363,12 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	}
 }
 
-func (g *Game) drawMenuOverlay(screen *ebiten.Image, m *menu) {
+func (g *Game) drawMenuOverlay(screen *ebiten.Image, m *menu.Menu) {
 	g.composeMenu(m)
 	screen.WritePixels(g.canvas.Pixels())
 }
 
-func (g *Game) composeMenu(m *menu) {
+func (g *Game) composeMenu(m *menu.Menu) {
 	// Settings can be opened straight from the title, before any game frame
 	// exists to dim behind the menu; fall back to a solid backdrop so the menu
 	// does not draw over stale pixels.
@@ -376,7 +377,7 @@ func (g *Game) composeMenu(m *menu) {
 	} else {
 		g.canvas.DimFrom(g.lastFrame, 0.3)
 	}
-	m.draw(g.canvas)
+	m.Draw(g.canvas, menu.DefaultTheme())
 }
 
 func (g *Game) Layout(_, _ int) (int, int) {
