@@ -1,10 +1,9 @@
 package gui
 
 import (
-	"encoding/json"
 	"fmt"
-	"os"
-	"path/filepath"
+
+	"github.com/danielriddell21/crucible/store"
 )
 
 type Records struct {
@@ -17,11 +16,8 @@ type Records struct {
 }
 
 func recordsPath() string {
-	dir, err := os.UserConfigDir()
-	if err != nil {
-		return ""
-	}
-	return filepath.Join(dir, "nemesis", "records.json")
+	p, _ := store.Path("nemesis", "records.json")
+	return p
 }
 
 func LoadRecords() Records {
@@ -29,17 +25,8 @@ func LoadRecords() Records {
 }
 
 func loadRecords(path string) Records {
-	r := Records{path: path}
-	if path == "" {
-		return r
-	}
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return r
-	}
-	if err := json.Unmarshal(data, &r); err != nil {
-		return Records{path: path}
-	}
+	r := store.Load(path, Records{})
+	r.path = path
 	return r
 }
 
@@ -79,18 +66,8 @@ func (r Records) summary() []string {
 }
 
 func (r Records) save() error {
-	if r.path == "" {
-		return nil
-	}
-	if err := os.MkdirAll(filepath.Dir(r.path), 0o750); err != nil {
-		return fmt.Errorf("records dir: %w", err)
-	}
-	data, err := json.MarshalIndent(r, "", "  ")
-	if err != nil {
-		return fmt.Errorf("records encode: %w", err)
-	}
-	if err := os.WriteFile(r.path, data, 0o600); err != nil {
-		return fmt.Errorf("records write: %w", err)
+	if err := store.Save(r.path, r); err != nil {
+		return fmt.Errorf("save records: %w", err)
 	}
 	return nil
 }
