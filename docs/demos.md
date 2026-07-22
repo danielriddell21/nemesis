@@ -77,11 +77,11 @@ brown vent ducts threading the wall mass between them, bulkhead doors
 airlock (red). Every layout is deterministic from its seed and guaranteed
 traversable.
 
-## The visualiser at rest
+## The AI visualiser
 
-![the visualiser panel](demos/visualiser.png)
+![the AI visualiser](demos/hunter.gif)
 
-The second window as it opens in play (`nemesis --visualiser`): the true map
+The second window in play (`nemesis --visualiser`): the true map
 with rooms, corridors, ducts, consoles and airlock; actor positions; the
 panel's state, target, menace gauge, objective tally and learned tiers; and
 the trigger feed filling below.

@@ -1,4 +1,8 @@
-package main
+// Package pilot is a scripted bot that plays a nemesis run: it pursues
+// objectives, flees or hides from the hunter, works the tracker and lobs
+// decoys. It reads only the simulation, so it drives both the headless demo
+// generator and the in-app attract-mode recording without a display.
+package pilot
 
 import (
 	"math"
@@ -7,13 +11,18 @@ import (
 	"github.com/danielriddell21/nemesis/internal/world"
 )
 
-type pilot struct {
+// Pilot holds the bot's small amount of cadence state between ticks.
+type Pilot struct {
 	trackerClock float64
 	pulse        bool
 	throwTimer   float64
 }
 
-func (p *pilot) input(g *sim.Game, dt float64) sim.Input {
+// New returns a fresh pilot.
+func New() *Pilot { return &Pilot{} }
+
+// Input decides the run's input for one tick of length dt.
+func (p *Pilot) Input(g *sim.Game, dt float64) sim.Input {
 	var in sim.Input
 	p.throwTimer -= dt
 	in.Hide = p.wantHide(g)
@@ -60,7 +69,7 @@ func (p *pilot) input(g *sim.Game, dt float64) sim.Input {
 	return in
 }
 
-func (p *pilot) wantHide(g *sim.Game) bool {
+func (p *Pilot) wantHide(g *sim.Game) bool {
 	// Duck into a locker when the hunter is on the prowl and close; stay put
 	// until it has wandered well away, then slip out. Returning true only when
 	// intent and reality differ presses the toggle exactly once.
@@ -75,7 +84,7 @@ func (p *pilot) wantHide(g *sim.Game) bool {
 	return want != g.Player.Hidden
 }
 
-func (p *pilot) wantThrow(g *sim.Game) bool {
+func (p *Pilot) wantThrow(g *sim.Game) bool {
 	// Lob a noisemaker when the hunter is within earshot but not yet on top of
 	// us, on a cooldown so decoys stay meaningful.
 	if p.throwTimer > 0 || g.Player.Decoys == 0 || g.DecoyState().Active {
@@ -88,7 +97,7 @@ func (p *pilot) wantThrow(g *sim.Game) bool {
 	return true
 }
 
-func (p *pilot) gait(g *sim.Game) sim.MoveMode {
+func (p *Pilot) gait(g *sim.Game) sim.MoveMode {
 	// Creep when the hunter is close, sprint when it is far or already after
 	// us: exactly the habits the hunter's learning is built to punish.
 	d := g.Alien.Pos.Sub(g.Player.Pos).Len()
@@ -104,7 +113,7 @@ func (p *pilot) gait(g *sim.Game) sim.MoveMode {
 	}
 }
 
-func (p *pilot) fleeTarget(g *sim.Game) (world.Coord, bool) {
+func (p *Pilot) fleeTarget(g *sim.Game) (world.Coord, bool) {
 	// Break away when the hunter presses in, preferring a vent dive: the
 	// crawl is slower but the creaks it teaches the hunter are the point of
 	// the demo.
@@ -137,7 +146,7 @@ func (p *pilot) fleeTarget(g *sim.Game) (world.Coord, bool) {
 	return best, found
 }
 
-func (p *pilot) trackerRaised(g *sim.Game, dt float64) bool {
+func (p *Pilot) trackerRaised(g *sim.Game, dt float64) bool {
 	// Check the scope on a nervous cadence, and cling to it when the hunter
 	// is close — which is precisely when it can hear the chirp and learn it.
 	p.trackerClock += dt
@@ -149,7 +158,7 @@ func (p *pilot) trackerRaised(g *sim.Game, dt float64) bool {
 	return d < 13 && phase < 3
 }
 
-func (p *pilot) objective(g *sim.Game) (world.Coord, bool) {
+func (p *Pilot) objective(g *sim.Game) (world.Coord, bool) {
 	l := g.World.Level
 	// Nearest console still dark, then the airlock.
 	best, bestD, found := world.Coord{}, math.MaxFloat64, false
@@ -189,7 +198,7 @@ func walkTarget(g *sim.Game, target world.Coord) world.Coord {
 	return target
 }
 
-func (p *pilot) nextCell(g *sim.Game, target world.Coord) (world.Coord, bool) {
+func (p *Pilot) nextCell(g *sim.Game, target world.Coord) (world.Coord, bool) {
 	from := g.Player.Pos.Cell()
 	path := bfs(g, from, walkTarget(g, target))
 	if len(path) == 0 {
@@ -204,7 +213,7 @@ func (p *pilot) nextCell(g *sim.Game, target world.Coord) (world.Coord, bool) {
 	return next, true
 }
 
-func (p *pilot) doorAhead(g *sim.Game, next world.Coord) bool {
+func (p *Pilot) doorAhead(g *sim.Game, next world.Coord) bool {
 	l := g.World.Level
 	return l.At(next.X, next.Y) == world.TileDoor && !g.World.DoorOpen(next) &&
 		cellMid(next).Sub(g.Player.Pos).Len() < 1.0

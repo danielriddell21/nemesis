@@ -10,10 +10,8 @@ import (
 
 	"github.com/danielriddell21/crucible/hud"
 
-	"github.com/danielriddell21/nemesis/internal/gui"
 	"github.com/danielriddell21/nemesis/internal/render"
 	"github.com/danielriddell21/nemesis/internal/sim"
-	"github.com/danielriddell21/nemesis/internal/telemetry"
 	"github.com/danielriddell21/nemesis/internal/world"
 )
 
@@ -32,25 +30,7 @@ func stills() error {
 	r := render.NewRenderer(render.DefaultConfig(), render.WithOverlay(hud.New()))
 	fb := r.Frame(g, 3.0)
 	cfg := r.Config()
-	if err := writePNG("docs/demos/game.png", fb, cfg.Width, cfg.Height); err != nil {
-		return err
-	}
-
-	v := gui.NewOffscreenVisualiser()
-	v.Apply(gui.Msg{Type: "hello", Seed: demoSeed, Width: demoWidth, Height: demoHeight})
-	state := gui.Snapshot(g)
-	v.Apply(gui.Msg{Type: "state", State: &state})
-	v.Apply(gui.Msg{Type: "events", Events: []telemetry.Event{
-		{Type: "alien-heard", X: 10, Y: 8, TargetX: 12, TargetY: 9, Radius: 9},
-		{Type: "vent-creak", X: 12, Y: 4, Radius: 6},
-		{Type: "alien-state", State: "hunt", TargetX: 20, TargetY: 11},
-		{Type: "ping", X: int(g.Player.Pos.X), Y: int(g.Player.Pos.Y), Radius: 5},
-	}})
-	for range 20 {
-		v.TickModel(tickDT)
-	}
-	fb, w, h := v.RenderFrame()
-	return writePNG("docs/demos/visualiser.png", fb, w, h)
+	return writePNG("docs/demos/game.png", fb, cfg.Width, cfg.Height)
 }
 
 func longestSightline(g *sim.Game, l *world.Level) float64 {
