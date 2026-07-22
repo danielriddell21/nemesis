@@ -8,7 +8,7 @@ import (
 	"math"
 	"os"
 
-	"github.com/danielriddell21/nemesis/internal/gui"
+	"github.com/danielriddell21/nemesis/internal/pilot"
 	"github.com/danielriddell21/nemesis/internal/render"
 )
 
@@ -23,7 +23,7 @@ const (
 )
 
 func recordCorridors(path string) error {
-	s := &session{vis: gui.NewOffscreenVisualiser()}
+	s := &session{pilot: pilot.New()}
 	if err := s.start(); err != nil {
 		return err
 	}

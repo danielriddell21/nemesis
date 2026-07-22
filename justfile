@@ -54,10 +54,13 @@ bench:
 fuzz:
     go test -run=^$ -fuzz=FuzzGenerate -fuzztime=30s ./internal/world
 
-# regenerate the documentation demo clip and stills
+# regenerate the documentation demo media
 [group('run')]
 demos:
+    # First-person clip and stills render headlessly through the software renderer.
     go run ./tools/demogen
+    # The AI-visualiser demo records the real window (wrap in xvfb-run when headless).
+    go run ./cmd/nemesis --record docs/demos/hunter.gif --seed 42 --record-frames 140
 
 # run govulncheck
 [group('dev')]

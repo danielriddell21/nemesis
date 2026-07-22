@@ -1,7 +1,12 @@
+// Command demogen renders nemesis's documentation media headlessly: a
+// first-person gameplay clip, a station montage, and feature stills. Like
+// pandemonium's generator it drives the simulation and the software renderer
+// directly and never imports the GUI, so it needs no display. The AI
+// visualiser demo is recorded separately from the real window (see the
+// justfile's `demos` recipe).
 package main
 
 import (
-	"bytes"
 	"fmt"
 	"image"
 	"image/color/palette"
@@ -9,9 +14,8 @@ import (
 	"image/gif"
 	"os"
 
-	"github.com/danielriddell21/nemesis/internal/gui"
+	"github.com/danielriddell21/nemesis/internal/pilot"
 	"github.com/danielriddell21/nemesis/internal/sim"
-	"github.com/danielriddell21/nemesis/internal/telemetry"
 	"github.com/danielriddell21/nemesis/internal/world"
 )
 
@@ -21,10 +25,8 @@ const (
 	demoHeight   = 32
 	demoConsoles = 3
 
-	simSeconds   = 150.0
-	captureEvery = 20 // sim ticks per GIF frame
-	frameDelay   = 12 // hundredths of a second: ~2.8x speed playback
-	tickDT       = 1.0 / 60
+	tickDT     = 1.0 / 60
+	frameDelay = 12 // hundredths of a second, unless a clip overrides it
 )
 
 func main() {
@@ -38,9 +40,6 @@ func run() error {
 	if err := os.MkdirAll("docs/demos", 0o750); err != nil {
 		return fmt.Errorf("demos dir: %w", err)
 	}
-	if err := record("docs/demos/hunter.gif"); err != nil {
-		return err
-	}
 	if err := recordCorridors("docs/demos/corridors.gif"); err != nil {
 		return err
 	}
@@ -50,10 +49,11 @@ func run() error {
 	return stills()
 }
 
+// session drives one continuing run: when the pilot dies or escapes, the next
+// station carries the hunter's learning forward, exactly like the real game.
 type session struct {
 	game    *sim.Game
-	vis     *gui.Visualiser
-	pilot   pilot
+	pilot   *pilot.Pilot
 	carried sim.Learned
 	run     int
 }
@@ -66,62 +66,17 @@ func (s *session) start() error {
 	if err != nil {
 		return fmt.Errorf("generate: %w", err)
 	}
-	s.game = sim.New(l,
-		sim.WithObserver(telemetry.NewBus(s)),
-		sim.WithLearned(s.carried),
-		sim.WithDepth(s.run),
-	)
-	s.vis.Apply(gui.Msg{
-		Type: "hello",
-		Seed: l.Seed, Width: demoWidth, Height: demoHeight, Consoles: demoConsoles,
-	})
+	s.game = sim.New(l, sim.WithLearned(s.carried), sim.WithDepth(s.run))
 	return nil
-}
-
-func (s *session) OnEvent(e telemetry.Event) {
-	s.vis.Apply(gui.Msg{Type: "events", Events: []telemetry.Event{e}})
 }
 
 func (s *session) tick() error {
 	if s.game.Dead() || s.game.Escaped() {
-		// Same rhythm as the real game: the next station gets the same,
-		// smarter hunter.
 		s.carried = s.game.Learned()
 		s.run++
 		return s.start()
 	}
-	s.game.Tick(s.pilot.input(s.game, tickDT), tickDT)
-	s.vis.TickModel(tickDT)
-	return nil
-}
-
-func record(path string) error {
-	s := &session{vis: gui.NewOffscreenVisualiser()}
-	if err := s.start(); err != nil {
-		return err
-	}
-	anim := &gif.GIF{}
-	var prev *image.Paletted
-	for i := range int(simSeconds / tickDT) {
-		if err := s.tick(); err != nil {
-			return err
-		}
-		if i%captureEvery != 0 {
-			continue
-		}
-		state := gui.Snapshot(s.game)
-		s.vis.Apply(gui.Msg{Type: "state", State: &state})
-		fb, w, h := s.vis.RenderFrame()
-		prev = appendFrame(anim, prev, fb, w, h)
-	}
-	var buf bytes.Buffer
-	if err := gif.EncodeAll(&buf, anim); err != nil {
-		return fmt.Errorf("encode gif: %w", err)
-	}
-	if err := os.WriteFile(path, buf.Bytes(), 0o600); err != nil {
-		return fmt.Errorf("write gif: %w", err)
-	}
-	fmt.Printf("%s: %d frames\n", path, len(anim.Image))
+	s.game.Tick(s.pilot.Input(s.game, tickDT), tickDT)
 	return nil
 }
 
@@ -132,8 +87,7 @@ func appendFrame(anim *gif.GIF, prev *image.Paletted, fb []byte, w, h int) *imag
 
 	frame := full
 	if prev != nil {
-		// Encode only the rectangle that changed since the previous frame:
-		// the map area moves, the panel text mostly stands still.
+		// Encode only the rectangle that changed since the previous frame.
 		box, changed := diffBox(prev, full)
 		if !changed {
 			box = image.Rect(0, 0, 1, 1)

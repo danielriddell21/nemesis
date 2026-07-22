@@ -16,6 +16,11 @@ type Config struct {
 	Visualiser bool
 	Role       Role
 	Link       *Link
+
+	// RecordPath, when set, runs a bot-driven visualiser that captures frames
+	// to a GIF at this path and then exits — the AI-visualiser demo.
+	RecordPath   string
+	RecordFrames int
 }
 
 func Available() bool { return true }
