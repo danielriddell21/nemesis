@@ -37,9 +37,9 @@ type recVisualiser struct {
 }
 
 // RunRecord opens a hidden window that plays itself and records the visualiser
-// to cfg.RecordPath, capturing cfg.RecordFrames frames before exiting.
+// to cfg.Rec.Path, capturing cfg.Rec.Frames frames before exiting.
 func RunRecord(cfg Config) error {
-	frames := cfg.RecordFrames
+	frames := cfg.Rec.Frames
 	if frames <= 0 {
 		frames = recDefaultFrames
 	}
@@ -112,11 +112,11 @@ func (r *recVisualiser) Draw(screen *ebiten.Image) {
 	}
 	if !r.done {
 		r.done = true
-		if err := r.rec.Save(r.cfg.RecordPath); err != nil {
+		if err := r.rec.Save(r.cfg.Rec.Path); err != nil {
 			fmt.Fprintln(os.Stderr, "record: save:", err)
 			return
 		}
-		fmt.Printf("%s: %d frames\n", r.cfg.RecordPath, r.rec.Len())
+		fmt.Printf("%s: %d frames\n", r.cfg.Rec.Path, r.rec.Len())
 	}
 }
 
