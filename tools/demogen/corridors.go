@@ -1,12 +1,11 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
 	"image"
-	"image/gif"
 	"math"
-	"os"
+
+	"github.com/danielriddell21/crucible/record"
 
 	"github.com/danielriddell21/nemesis/internal/pilot"
 	"github.com/danielriddell21/nemesis/internal/render"
@@ -29,10 +28,11 @@ func recordCorridors(path string) error {
 	}
 	r := render.NewRenderer(render.DefaultConfig())
 	cfg := r.Config()
-	anim := &gif.GIF{}
-	var prev *image.Paletted
-	now, frames, recording := 0.0, 0, false
-	for i := 0; frames < povFrames && now < povDeadline; i++ {
+	// Frames are pre-downscaled with a gamma lift below, so the recorder keeps
+	// scale 1 and only handles the delta-frame GIF encoding.
+	rec := record.NewRecorder(0, 1, povFrames, record.WithFrameDelay(povDelay), record.WithFrameDiff())
+	now, recording := 0.0, false
+	for i := 0; !rec.Done() && now < povDeadline; i++ {
 		if err := s.tick(); err != nil {
 			return err
 		}
@@ -48,18 +48,12 @@ func recordCorridors(path string) error {
 		}
 		fb := r.Frame(s.game, now)
 		small, w, h := downscale(fb, cfg.Width, cfg.Height, povScale)
-		prev = appendFrame(anim, prev, small, w, h)
-		anim.Delay[len(anim.Delay)-1] = povDelay
-		frames++
+		rec.Add(&image.RGBA{Pix: small, Stride: w * 4, Rect: image.Rect(0, 0, w, h)})
 	}
-	var buf bytes.Buffer
-	if err := gif.EncodeAll(&buf, anim); err != nil {
-		return fmt.Errorf("encode gif: %w", err)
+	if err := rec.Save(path); err != nil {
+		return fmt.Errorf("save gif: %w", err)
 	}
-	if err := os.WriteFile(path, buf.Bytes(), 0o600); err != nil {
-		return fmt.Errorf("write gif: %w", err)
-	}
-	fmt.Printf("%s: %d frames\n", path, len(anim.Image))
+	fmt.Printf("%s: %d frames\n", path, rec.Len())
 	return nil
 }
 
