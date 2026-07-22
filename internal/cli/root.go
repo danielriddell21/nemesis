@@ -41,8 +41,7 @@ func newRootCmd(version string) *cobra.Command {
 	cmd.Flags().IntVar(&cfg.Height, "height", 32, "level height in tiles")
 	cmd.Flags().IntVar(&cfg.Consoles, "consoles", 3, "objective consoles required to unlock the airlock")
 	cmd.Flags().BoolVar(&cfg.Visualiser, "visualiser", false, "open the hunter AI visualiser window alongside the game")
-	cmd.Flags().StringVar(&cfg.Rec.Path, "record", "", "record a bot-driven AI visualiser demo to this GIF path, then exit")
-	cmd.Flags().IntVar(&cfg.Rec.Frames, "record-frames", 0, "frames to capture when recording (0 uses a default)")
+	cfg.Rec.AddPacedFlags(cmd.Flags())
 	cmd.Flags().IntVar(&child, "child", 0, "internal: run as a coordinated child window")
 	_ = cmd.Flags().MarkHidden("child")
 
