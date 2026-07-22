@@ -6,6 +6,7 @@ import (
 
 	"github.com/danielriddell21/crucible/geom"
 	"github.com/danielriddell21/crucible/hud"
+	"github.com/danielriddell21/crucible/paint"
 	"github.com/danielriddell21/crucible/raycast"
 
 	"github.com/danielriddell21/nemesis/internal/sim"
@@ -61,10 +62,10 @@ func (r *Renderer) drawBackdrop() {
 		var c [4]byte
 		if y < half {
 			depth := float64(half-y) / float64(half)
-			c = shadeBytes(palette.ceiling, 0.25+0.75*depth)
+			c = paint.ScaleBytes(palette.ceiling, 0.25+0.75*depth)
 		} else {
 			depth := float64(y-half+1) / float64(half)
-			c = shadeBytes(palette.floor, 0.25+0.75*depth)
+			c = paint.ScaleBytes(palette.floor, 0.25+0.75*depth)
 		}
 		row := r.fb[y*w*4 : (y+1)*w*4]
 		for x := 0; x < w*4; x += 4 {
@@ -132,22 +133,5 @@ func (r *Renderer) lockerView() {
 }
 
 func (r *Renderer) tint(c color.RGBA, alpha float64) {
-	for i := 0; i < len(r.fb); i += 4 {
-		r.fb[i] = blendByte(r.fb[i], c.R, alpha)
-		r.fb[i+1] = blendByte(r.fb[i+1], c.G, alpha)
-		r.fb[i+2] = blendByte(r.fb[i+2], c.B, alpha)
-	}
-}
-
-func blendByte(dst, src uint8, alpha float64) uint8 {
-	return uint8(float64(dst)*(1-alpha) + float64(src)*alpha)
-}
-
-func shadeBytes(c color.RGBA, k float64) [4]byte {
-	return [4]byte{
-		uint8(float64(c.R) * k),
-		uint8(float64(c.G) * k),
-		uint8(float64(c.B) * k),
-		255,
-	}
+	paint.BlendOver(r.fb, c, alpha)
 }

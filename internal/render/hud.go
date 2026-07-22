@@ -11,6 +11,7 @@ import (
 	"golang.org/x/image/math/fixed"
 
 	"github.com/danielriddell21/crucible/hud"
+	"github.com/danielriddell21/crucible/paint"
 
 	"github.com/danielriddell21/nemesis/internal/sim"
 )
@@ -104,10 +105,10 @@ func (r *Renderer) drawTracker(g *sim.Game, now float64) {
 	radius := r.cfg.Height / 5
 
 	r.drawArc(cx, cy, radius, palette.tracker)
-	r.drawArc(cx, cy, radius/2, dimmed(palette.tracker, 0.5))
+	r.drawArc(cx, cy, radius/2, paint.Scale(palette.tracker, 0.5))
 	// Forward tick so the scope reads as facing up-screen.
 	for d := 0; d <= radius; d++ {
-		r.putPixel(cx, cy-d, dimmed(palette.tracker, 0.35))
+		r.putPixel(cx, cy-d, paint.Scale(palette.tracker, 0.35))
 	}
 
 	c := g.Tracker.Contact
@@ -116,12 +117,12 @@ func (r *Renderer) drawTracker(g *sim.Game, now float64) {
 		k := 1 - c.Age/sim.PingInterval()
 		px := cx + int(math.Sin(c.Bearing)*c.Dist/sim.TrackerRange()*float64(radius))
 		py := cy - int(math.Cos(c.Bearing)*c.Dist/sim.TrackerRange()*float64(radius))
-		r.drawBlob(px, py, 3, dimmed(palette.blip, 0.3+0.7*k))
+		r.drawBlob(px, py, 3, paint.Scale(palette.blip, 0.3+0.7*k))
 		label := fmt.Sprintf("%2.0fM", c.Dist)
 		r.drawTextCentered(cy+12, label, palette.tracker)
 	} else if math.Mod(now, sim.PingInterval()) < 0.1 {
 		// The sweep flash on an empty return.
-		r.drawBlob(cx, cy, 2, dimmed(palette.tracker, 0.8))
+		r.drawBlob(cx, cy, 2, paint.Scale(palette.tracker, 0.8))
 	}
 }
 
@@ -174,8 +175,4 @@ func (r *Renderer) framebufferImage() *image.RGBA {
 		Stride: r.cfg.Width * 4,
 		Rect:   image.Rect(0, 0, r.cfg.Width, r.cfg.Height),
 	}
-}
-
-func dimmed(c color.RGBA, k float64) color.RGBA {
-	return color.RGBA{R: uint8(float64(c.R) * k), G: uint8(float64(c.G) * k), B: uint8(float64(c.B) * k), A: 255}
 }
