@@ -7,6 +7,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 
 	"github.com/danielriddell21/crucible/hud"
+	"github.com/danielriddell21/crucible/window"
 )
 
 func Run(cfg Config) error {
@@ -38,8 +39,7 @@ func runGame(cfg Config) error {
 		return err
 	}
 
-	ebiten.SetWindowTitle("nemesis")
-	ebiten.SetWindowSize(1280, 800)
+	window.Configure(window.Options{Title: "nemesis", Width: 1280, Height: 800, MinWidth: 640, MinHeight: 400})
 	if err := handleRunError(ebiten.RunGame(game)); err != nil {
 		return fmt.Errorf("run game window: %w", err)
 	}
@@ -48,8 +48,7 @@ func runGame(cfg Config) error {
 
 func runVisualiser(cfg Config) error {
 	v := newVisualiser(cfg)
-	ebiten.SetWindowTitle("nemesis — hunter AI")
-	ebiten.SetWindowSize(visWindowW, visWindowH)
+	window.Configure(window.Options{Title: "nemesis — hunter AI", Width: visWindowW, Height: visWindowH, MinWidth: visWindowW / 2, MinHeight: visWindowH / 2})
 	if err := ebiten.RunGame(v); err != nil {
 		return fmt.Errorf("run visualiser window: %w", err)
 	}
