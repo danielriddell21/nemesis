@@ -2,9 +2,37 @@ package gui
 
 import (
 	"fmt"
+	"strings"
 
+	"github.com/danielriddell21/crucible/keymap"
 	"github.com/danielriddell21/crucible/menu"
 )
+
+// controlHints is nemesis's control scheme, shown on the pause menu and shared
+// through crucible/keymap so its "key: action" format matches the family.
+var controlHints = []keymap.Binding{
+	{Key: "WASD", Action: "MOVE"},
+	{Key: "MOUSE", Action: "LOOK"},
+	{Key: "SHIFT", Action: "RUN"},
+	{Key: "CTRL", Action: "SNEAK"},
+	{Key: "E", Action: "USE"},
+	{Key: "F", Action: "HIDE"},
+	{Key: "T", Action: "TRACKER"},
+	{Key: "Q", Action: "DECOY"},
+}
+
+// controlsSubtitle formats the control scheme as two centred rows for a menu
+// subtitle.
+func controlsSubtitle() []string {
+	row := func(bs []keymap.Binding) string {
+		parts := make([]string, len(bs))
+		for i, b := range bs {
+			parts[i] = b.Label()
+		}
+		return strings.Join(parts, "    ")
+	}
+	return []string{row(controlHints[:4]), row(controlHints[4:]), ""}
+}
 
 func (g *Game) buildMenus() {
 	g.titleMenu = &menu.Menu{
@@ -17,7 +45,8 @@ func (g *Game) buildMenus() {
 		},
 	}
 	g.pauseMenu = &menu.Menu{
-		Title: "PAUSED",
+		Title:    "PAUSED",
+		Subtitle: controlsSubtitle(),
 		Items: []menu.Item{
 			{Label: func() string { return "RESUME" }, Action: func() { g.state = statePlaying }},
 			{Label: func() string { return "SETTINGS" }, Action: func() { g.openSettings(statePaused) }},

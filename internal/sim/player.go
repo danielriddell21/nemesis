@@ -116,6 +116,37 @@ func moveProfile(m MoveMode) (speed, noise float64) {
 	}
 }
 
+// InteractTarget is what the player is currently facing within reach, for a
+// contextual prompt.
+type InteractTarget int
+
+// Interact targets a contextual prompt can describe.
+const (
+	InteractNone InteractTarget = iota
+	InteractDoor
+	InteractConsole
+)
+
+// FacingInteractable reports what the player could act on right now — a closed
+// door or an un-activated console ahead within reach. It never mutates the
+// world, so the GUI can poll it each frame to show or hide a prompt.
+func (g *Game) FacingInteractable() InteractTarget {
+	p := g.Player
+	ahead := Vec2{X: p.Pos.X + p.Dir().X*reach, Y: p.Pos.Y + p.Dir().Y*reach}
+	c := ahead.Cell()
+	switch g.World.Level.At(c.X, c.Y) {
+	case world.TileDoor:
+		if !g.World.DoorOpen(c) {
+			return InteractDoor
+		}
+	case world.TileConsole:
+		if !g.activated[c] {
+			return InteractConsole
+		}
+	}
+	return InteractNone
+}
+
 func (g *Game) interact(noise *noiseEvent) {
 	p := g.Player
 	ahead := Vec2{X: p.Pos.X + p.Dir().X*reach, Y: p.Pos.Y + p.Dir().Y*reach}
