@@ -11,6 +11,7 @@ import (
 	"golang.org/x/image/math/fixed"
 
 	"github.com/danielriddell21/crucible/hud"
+	"github.com/danielriddell21/crucible/keymap"
 	"github.com/danielriddell21/crucible/paint"
 
 	"github.com/danielriddell21/nemesis/internal/sim"
@@ -46,21 +47,32 @@ func (r *Renderer) drawStatusLine(g *sim.Game) {
 	r.drawText(hudMarginX+1, y+1, status, palette.hudDrop)
 	r.drawText(hudMarginX, y, status, palette.hudDim)
 
-	if prompt := actionPrompt(g); prompt != "" {
-		x := (r.cfg.Width - len(prompt)*glyphWidth) / 2
-		r.drawText(x+1, r.cfg.Height-24+1, prompt, palette.hudDrop)
-		r.drawText(x, r.cfg.Height-24, prompt, palette.tracker)
+	if b, ok := actionPrompt(g); ok {
+		// The contextual prompt shares the family's centred layout via
+		// crucible/keymap, rendered here in nemesis's own font and palette.
+		face := keymap.Face{LineHeight: hudBaseline, Measure: func(s string) int { return len(s) * glyphWidth }}
+		line := keymap.CenterPrompt(b, r.cfg.Width, r.cfg.Height, face)
+		r.drawText(line.X+1, line.Y+1, line.Text, palette.hudDrop)
+		r.drawText(line.X, line.Y, line.Text, palette.tracker)
 	}
 }
 
-func actionPrompt(g *sim.Game) string {
-	if g.Player.Hidden {
-		return "[F] LEAVE LOCKER"
+// actionPrompt returns the contextual control hint for what the player is doing
+// or facing, and whether any applies.
+func actionPrompt(g *sim.Game) (keymap.Binding, bool) {
+	switch {
+	case g.Player.Hidden:
+		return keymap.Binding{Key: "F", Action: "LEAVE LOCKER"}, true
+	case g.Player.OnLocker(g.World):
+		return keymap.Binding{Key: "F", Action: "HIDE"}, true
 	}
-	if g.Player.OnLocker(g.World) {
-		return "[F] HIDE"
+	switch g.FacingInteractable() {
+	case sim.InteractDoor:
+		return keymap.Binding{Key: "E", Action: "OPEN DOOR"}, true
+	case sim.InteractConsole:
+		return keymap.Binding{Key: "E", Action: "HACK CONSOLE"}, true
 	}
-	return ""
+	return keymap.Binding{}, false
 }
 
 func gaitLabel(g *sim.Game) string {
