@@ -1,14 +1,11 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
-	"image"
-	"image/png"
 	"math"
-	"os"
 
 	"github.com/danielriddell21/crucible/hud"
+	"github.com/danielriddell21/crucible/record"
 
 	"github.com/danielriddell21/nemesis/internal/render"
 	"github.com/danielriddell21/nemesis/internal/sim"
@@ -54,12 +51,7 @@ func longestSightline(g *sim.Game, l *world.Level) float64 {
 }
 
 func writePNG(path string, fb []byte, w, h int) error {
-	img := &image.RGBA{Pix: fb, Stride: w * 4, Rect: image.Rect(0, 0, w, h)}
-	var buf bytes.Buffer
-	if err := png.Encode(&buf, img); err != nil {
-		return fmt.Errorf("encode %s: %w", path, err)
-	}
-	if err := os.WriteFile(path, buf.Bytes(), 0o600); err != nil {
+	if err := record.SavePNG(path, record.FromRGBA(fb, w, h)); err != nil {
 		return fmt.Errorf("write %s: %w", path, err)
 	}
 	fmt.Println(path)
