@@ -1,5 +1,7 @@
 # nemesis
 
+> *n.* the pursuer you cannot shake. This one remembers.
+
 [![CI](https://github.com/danielriddell21/nemesis/actions/workflows/ci.yaml/badge.svg)](https://github.com/danielriddell21/nemesis/actions/workflows/ci.yaml)
 [![codecov](https://codecov.io/gh/danielriddell21/nemesis/graph/badge.svg)](https://codecov.io/gh/danielriddell21/nemesis)
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=danielriddell21_nemesis&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=danielriddell21_nemesis)
