@@ -1,6 +1,6 @@
 # nemesis
 
-> *n.* the pursuer you cannot shake. This one remembers.
+> *nemesis* — retribution that remembers.
 
 [![CI](https://github.com/danielriddell21/nemesis/actions/workflows/ci.yaml/badge.svg)](https://github.com/danielriddell21/nemesis/actions/workflows/ci.yaml)
 [![codecov](https://codecov.io/gh/danielriddell21/nemesis/graph/badge.svg)](https://codecov.io/gh/danielriddell21/nemesis)
