@@ -1,9 +1,8 @@
 // Command demogen renders nemesis's documentation media headlessly: a
-// first-person gameplay clip, a station montage, and feature stills. Like
-// pandemonium's generator it drives the simulation and the software renderer
-// directly and never imports the GUI, so it needs no display. The AI
-// visualiser demo is recorded separately from the real window (see the
-// justfile's `demos` recipe).
+// first-person gameplay clip, an AI-visualiser clip, a station montage, and
+// feature stills. Like pandemonium's generator it drives the simulation and
+// the software renderers directly and never imports the GUI, so the whole set
+// builds with no display.
 package main
 
 import (
@@ -12,6 +11,7 @@ import (
 
 	"github.com/danielriddell21/nemesis/internal/pilot"
 	"github.com/danielriddell21/nemesis/internal/sim"
+	"github.com/danielriddell21/nemesis/internal/telemetry"
 	"github.com/danielriddell21/nemesis/internal/world"
 )
 
@@ -38,6 +38,9 @@ func run() error {
 	if err := recordCorridors("docs/demos/corridors.gif"); err != nil {
 		return err
 	}
+	if err := recordHunter("docs/demos/hunter.gif"); err != nil {
+		return err
+	}
 	if err := stationsMontage("docs/demos/stations.png"); err != nil {
 		return err
 	}
@@ -51,17 +54,32 @@ type session struct {
 	pilot   *pilot.Pilot
 	carried sim.Learned
 	run     int
+
+	// observe, when set, subscribes to the simulation's events; onStart, when
+	// set, is called with each new station's seed. The visualiser clip needs
+	// both to keep its map and feed in step; the first-person clip needs
+	// neither.
+	observe telemetry.Subscriber
+	onStart func(seed int64)
 }
 
 func (s *session) start() error {
+	seed := demoSeed + int64(s.run)*0x9e3779b9
 	l, err := world.Generate(world.Config{
 		Width: demoWidth, Height: demoHeight,
-		Seed: demoSeed + int64(s.run)*0x9e3779b9, Consoles: demoConsoles,
+		Seed: seed, Consoles: demoConsoles,
 	})
 	if err != nil {
 		return fmt.Errorf("generate: %w", err)
 	}
-	s.game = sim.New(l, sim.WithLearned(s.carried), sim.WithDepth(s.run))
+	opts := []sim.Option{sim.WithLearned(s.carried), sim.WithDepth(s.run)}
+	if s.observe != nil {
+		opts = append(opts, sim.WithObserver(telemetry.NewBus(s.observe)))
+	}
+	s.game = sim.New(l, opts...)
+	if s.onStart != nil {
+		s.onStart(seed)
+	}
 	return nil
 }
 

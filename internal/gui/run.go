@@ -8,6 +8,8 @@ import (
 
 	"github.com/danielriddell21/crucible/hud"
 	"github.com/danielriddell21/crucible/window"
+
+	"github.com/danielriddell21/nemesis/internal/vis"
 )
 
 func Run(cfg Config) error {
@@ -48,7 +50,8 @@ func runGame(cfg Config) error {
 
 func runVisualiser(cfg Config) error {
 	v := newVisualiser(cfg)
-	window.Configure(window.Options{Title: "nemesis — hunter AI", Width: visWindowW, Height: visWindowH, MinWidth: visWindowW / 2, MinHeight: visWindowH / 2})
+	w, h := vis.Size()
+	window.Configure(window.Options{Title: "nemesis — hunter AI", Width: w, Height: h, MinWidth: w / 2, MinHeight: h / 2})
 	if err := ebiten.RunGame(v); err != nil {
 		return fmt.Errorf("run visualiser window: %w", err)
 	}

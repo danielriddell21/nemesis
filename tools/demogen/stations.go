@@ -5,15 +5,20 @@ import (
 	"image"
 	"image/color"
 
+	"github.com/danielriddell21/crucible/demo"
+	"github.com/danielriddell21/crucible/record"
+
 	"github.com/danielriddell21/nemesis/internal/world"
 )
 
 const (
 	montageTile = 6
 	montageCols = 3
-	montageRows = 2
 	montageGap  = 10
 )
+
+// montageBG is the dark backdrop behind and between the station cells.
+var montageBG = color.RGBA{R: 12, G: 14, B: 18, A: 255}
 
 var montagePalette = map[world.Tile]color.RGBA{
 	world.TileWall:    {R: 38, G: 43, B: 51, A: 255},
@@ -28,23 +33,38 @@ var montagePalette = map[world.Tile]color.RGBA{
 
 func stationsMontage(path string) error {
 	seeds := []int64{7, 21, 42, 99, 1234, 31337}
-	cellW := demoWidth*montageTile + montageGap
-	cellH := demoHeight*montageTile + montageGap
-	img := image.NewRGBA(image.Rect(0, 0, montageCols*cellW+montageGap, montageRows*cellH+montageGap))
-	bg := [4]uint8{12, 14, 18, 255}
-	for i := range img.Pix {
-		img.Pix[i] = bg[i%4]
-	}
-	for i, seed := range seeds {
+	cells := make([]image.Image, 0, len(seeds))
+	for _, seed := range seeds {
 		l, err := world.Generate(world.Config{Width: demoWidth, Height: demoHeight, Seed: seed})
 		if err != nil {
 			return fmt.Errorf("montage seed %d: %w", seed, err)
 		}
-		offX := montageGap + (i%montageCols)*cellW
-		offY := montageGap + (i/montageCols)*cellH
-		drawStation(img, l, offX, offY)
+		cells = append(cells, stationCell(l))
 	}
-	return writePNG(path, img.Pix, img.Rect.Dx(), img.Rect.Dy())
+	if err := record.SavePNG(path, demo.Montage(cells, montageCols, montageGap, montageBG)); err != nil {
+		return fmt.Errorf("write montage: %w", err)
+	}
+	fmt.Println(path)
+	return nil
+}
+
+// stationCell paints one generated level as a tile map, for the contact sheet.
+func stationCell(l *world.Level) *image.RGBA {
+	img := image.NewRGBA(image.Rect(0, 0, l.W*montageTile, l.H*montageTile))
+	for i := range img.Pix {
+		switch i % 4 {
+		case 0:
+			img.Pix[i] = montageBG.R
+		case 1:
+			img.Pix[i] = montageBG.G
+		case 2:
+			img.Pix[i] = montageBG.B
+		default:
+			img.Pix[i] = montageBG.A
+		}
+	}
+	drawStation(img, l, 0, 0)
+	return img
 }
 
 func drawStation(img *image.RGBA, l *world.Level, offX, offY int) {

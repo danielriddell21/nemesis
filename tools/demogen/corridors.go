@@ -5,6 +5,7 @@ import (
 	"image"
 	"math"
 
+	"github.com/danielriddell21/crucible/demo"
 	"github.com/danielriddell21/crucible/record"
 
 	"github.com/danielriddell21/nemesis/internal/pilot"
@@ -31,24 +32,31 @@ func recordCorridors(path string) error {
 	// Frames are pre-downscaled with a gamma lift below, so the recorder keeps
 	// scale 1 and only handles the delta-frame GIF encoding.
 	rec := record.NewRecorder(0, 1, povFrames, record.WithFrameDelay(povDelay), record.WithFrameDiff())
-	now, recording := 0.0, false
-	for i := 0; !rec.Done() && now < povDeadline; i++ {
-		if err := s.tick(); err != nil {
-			return err
-		}
-		now += tickDT
+	now := 0.0
+	clip := demo.Clip{
+		Frames:   povFrames,
+		Every:    povEvery,
+		MaxSteps: int(povDeadline / tickDT),
+		Step: func(int) error {
+			if err := s.tick(); err != nil {
+				return err
+			}
+			now += tickDT
+			return nil
+		},
 		// Start rolling once the hunter is close enough to matter, so the clip
 		// opens on the interesting part of the run.
-		if !recording {
+		Ready: func(int) bool {
 			d := s.game.Alien.Pos.Sub(s.game.Player.Pos).Len()
-			recording = d < povLeadIn || now > povForceAt
-		}
-		if !recording || i%povEvery != 0 {
-			continue
-		}
-		fb := r.Frame(s.game, now)
-		small, w, h := downscale(fb, cfg.Width, cfg.Height, povScale)
-		rec.Add(&image.RGBA{Pix: small, Stride: w * 4, Rect: image.Rect(0, 0, w, h)})
+			return d < povLeadIn || now > povForceAt
+		},
+		Frame: func(int) image.Image {
+			small, w, h := downscale(r.Frame(s.game, now), cfg.Width, cfg.Height, povScale)
+			return record.FromRGBA(small, w, h)
+		},
+	}
+	if _, err := clip.Record(rec); err != nil {
+		return fmt.Errorf("capture clip: %w", err)
 	}
 	if err := rec.Save(path); err != nil {
 		return fmt.Errorf("save gif: %w", err)

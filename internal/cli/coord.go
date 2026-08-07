@@ -31,13 +31,6 @@ func route(m gui.Msg) hub.Route {
 	}
 }
 
-func runRecord(cfg gui.Config) error {
-	if err := gui.RunRecord(cfg); err != nil {
-		return fmt.Errorf("record visualiser: %w", err)
-	}
-	return nil
-}
-
 func runLeader(cfg gui.Config) error {
 	if !cfg.Visualiser {
 		cfg.Role = gui.RoleGame
