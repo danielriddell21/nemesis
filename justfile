@@ -57,10 +57,9 @@ fuzz:
 # regenerate the documentation demo media
 [group('run')]
 demos:
-    # First-person clip and stills render headlessly through the software renderer.
+    # Every clip and still renders headlessly through the software renderers:
+    # no window, no display. The clips are defined in tools/demogen.
     go run ./tools/demogen
-    # The AI-visualiser demo records the real window (wrap in xvfb-run when headless).
-    go run ./cmd/nemesis --record docs/demos/hunter.gif --seed 42 --record-frames 140
 
 # run govulncheck
 [group('dev')]

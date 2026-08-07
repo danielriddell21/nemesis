@@ -26,9 +26,6 @@ func newRootCmd(version string) *cobra.Command {
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(_ *cobra.Command, _ []string) error {
-			if cfg.Rec.Recording() {
-				return runRecord(cfg)
-			}
 			if child > 0 {
 				return runChild(cfg)
 			}
@@ -41,7 +38,6 @@ func newRootCmd(version string) *cobra.Command {
 	cmd.Flags().IntVar(&cfg.Height, "height", 32, "level height in tiles")
 	cmd.Flags().IntVar(&cfg.Consoles, "consoles", 3, "objective consoles required to unlock the airlock")
 	cmd.Flags().BoolVar(&cfg.Visualiser, "visualiser", false, "open the hunter AI visualiser window alongside the game")
-	cfg.Rec.AddPacedFlags(cmd.Flags())
 	cmd.Flags().IntVar(&child, "child", 0, "internal: run as a coordinated child window")
 	_ = cmd.Flags().MarkHidden("child")
 
