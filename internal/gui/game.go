@@ -10,6 +10,7 @@ import (
 	cv "github.com/danielriddell21/crucible/canvas"
 	"github.com/danielriddell21/crucible/hud"
 	"github.com/danielriddell21/crucible/menu"
+	"github.com/danielriddell21/crucible/menu/ebiteninput"
 
 	iaudio "github.com/danielriddell21/nemesis/internal/audio"
 	"github.com/danielriddell21/nemesis/internal/render"
@@ -96,7 +97,7 @@ func (g *Game) Update() error {
 	g.setCursor()
 	switch g.state {
 	case stateTitle:
-		g.playMenuSound(g.titleMenu.Update(menu.Poll()))
+		g.playMenuSound(g.titleMenu.Update(ebiteninput.Poll()))
 	case statePlaying:
 		return g.updatePlaying()
 	case statePaused:
@@ -161,7 +162,7 @@ func (g *Game) updatePaused() {
 		g.state = statePlaying
 		return
 	}
-	g.playMenuSound(g.pauseMenu.Update(menu.Poll()))
+	g.playMenuSound(g.pauseMenu.Update(ebiteninput.Poll()))
 }
 
 func (g *Game) updateSettings() {
@@ -170,7 +171,7 @@ func (g *Game) updateSettings() {
 		g.leaveSettings()
 		return
 	}
-	g.playMenuSound(g.settingsMenu.Update(menu.Poll()))
+	g.playMenuSound(g.settingsMenu.Update(ebiteninput.Poll()))
 }
 
 func (g *Game) playMenuSound(s menu.Sound) {
