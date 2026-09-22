@@ -3,10 +3,10 @@ module github.com/danielriddell21/nemesis
 go 1.27.1
 
 require (
-	github.com/danielriddell21/crucible v0.15.3-0.20260811181752-4c0faaaa2085
+	github.com/danielriddell21/crucible v1.0.0
 	github.com/hajimehoshi/ebiten/v2 v2.10.2
 	github.com/spf13/cobra v1.10.2
-	golang.org/x/image v0.45.0
+	golang.org/x/image v0.46.0
 )
 
 require (
@@ -19,5 +19,5 @@ require (
 	github.com/jfreymuth/pulse v0.1.3 // indirect
 	github.com/spf13/pflag v1.0.10 // indirect
 	golang.org/x/sync v0.22.0 // indirect
-	golang.org/x/sys v0.47.0 // indirect
+	golang.org/x/sys v0.48.0 // indirect
 )
