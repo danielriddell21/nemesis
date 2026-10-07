@@ -11,6 +11,7 @@ unleash:
     # raycaster and the PCM synthesiser. Mutation testing here is noise.
     - "internal/render/.*"
     - "internal/audio/.*"
+    - "tools/.*" # generates the docs media, like cmd it only wires packages together
 
 mutants:
   arithmetic-base:
