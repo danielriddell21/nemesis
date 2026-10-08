@@ -13,6 +13,8 @@ jobs:
     permissions:
       contents: read
     with:
+      # A release candidate; promote.yaml publishes the stable version.
+      pre: true
       ebiten: true
       test-command: xvfb-run -a go test -coverprofile=coverage.txt ./...
     secrets:
