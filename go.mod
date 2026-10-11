@@ -3,7 +3,7 @@ module github.com/danielriddell21/nemesis
 go 1.27.1
 
 require (
-	github.com/danielriddell21/crucible v1.0.0
+	github.com/danielriddell21/crucible v1.0.1
 	github.com/hajimehoshi/ebiten/v2 v2.10.4
 	github.com/spf13/cobra v1.10.2
 	golang.org/x/image v0.46.0
