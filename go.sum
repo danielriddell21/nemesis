@@ -1,6 +1,6 @@
 github.com/cpuguy83/go-md2man/v2 v2.0.6/go.mod h1:oOW0eioCTA6cOiMLiUPZOpcVxMig6NIQQ7OS05n1F4g=
-github.com/danielriddell21/crucible v1.0.0 h1:18j/R9Vj6rPH2yBuw6y0/7YdhGYcJUqWQLiauQwJ9RY=
-github.com/danielriddell21/crucible v1.0.0/go.mod h1:zkFMgFhLCROS3nlwxK5exTI1KulRc+AuUj8ZY4SGkj4=
+github.com/danielriddell21/crucible v1.0.2 h1:d6vzccNWr3noXbN4sVp4pI2JFAd0QV6/E+NMNvu0kA4=
+github.com/danielriddell21/crucible v1.0.2/go.mod h1:Eo124wuEag3OEQhGjiHfA8rjwy5OIDSsBEA2KIpRWKI=
 github.com/danielriddell21/ordinex/v2 v2.0.1 h1:06R1COWpakgZI+GTsqGwgXcKaeXXuK1jlCLg9zkS0KI=
 github.com/danielriddell21/ordinex/v2 v2.0.1/go.mod h1:6iZREoGEq3nhCSvjUqgOOU7WKlASs9pu28gENi3GqmI=
 github.com/ebitengine/gomobile v0.0.0-20260820040257-d11f821a26a6 h1:Tnc3YtzxhgsvNdNrER9wWkGJbyjOwyUuzjUY5rZK72k=
