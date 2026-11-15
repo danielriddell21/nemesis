@@ -70,6 +70,7 @@ func (r *Renderer) drawEffects(g *sim.Game, now float64) {
 		r.lockerView()
 	} else if g.Player.InVent(g.World) {
 		r.letterbox()
+		r.ventPress()
 	}
 	switch {
 	case g.Dead():
@@ -81,6 +82,22 @@ func (r *Renderer) drawEffects(g *sim.Game, now float64) {
 		alpha := (g.Menace() - 0.65) / 0.35 * (0.08 + 0.05*math.Sin(now*6))
 		if alpha > 0 {
 			r.tint(palette.deathTint, alpha)
+		}
+	}
+}
+
+func (r *Renderer) ventPress() {
+	// The walls close in: the edges of the view fall away to black, as if the
+	// duct were pressing on both shoulders.
+	w, h := r.cfg.Width, r.cfg.Height
+	for y := range h {
+		for x := range w {
+			edge := math.Abs(float64(x)/float64(w)*2 - 1)
+			k := 1 - 0.65*smoothstep(0.45, 1, edge)
+			i := (y*w + x) * 4
+			r.fb[i] = uint8(float64(r.fb[i]) * k)
+			r.fb[i+1] = uint8(float64(r.fb[i+1]) * k)
+			r.fb[i+2] = uint8(float64(r.fb[i+2]) * k)
 		}
 	}
 }

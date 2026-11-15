@@ -36,6 +36,8 @@ type textureSet struct {
 	ceiling       *texture
 	door          *texture
 	vent          *texture
+	duct          *texture
+	ventCeiling   *texture
 	console       *texture
 	consoleActive *texture
 	alien         [2]*texture
@@ -51,6 +53,8 @@ func buildTextures() *textureSet {
 		ceiling:       ceilingTexture(),
 		door:          doorTexture(),
 		vent:          ventTexture(),
+		duct:          ductTexture(),
+		ventCeiling:   ventCeilingTexture(),
 		console:       consoleTexture(palette.console, false),
 		consoleActive: consoleTexture(palette.consoleActive, true),
 		alien:         [2]*texture{alienTexture(-1), alienTexture(1)},
@@ -160,15 +164,56 @@ func ventTexture() *texture {
 	t := newTexture(texSize)
 	for y := range texSize {
 		for x := range texSize {
-			c := palette.vent
-			// Ribbed ducting with grate slits.
-			if y%6 < 2 {
-				c = adjust(c, -20)
-			}
-			if x%10 < 2 {
-				c = adjust(c, -14)
+			// A floor grating: bright bars over a black void, so the duct
+			// reads as hollow under your feet.
+			c := adjust(palette.vent, 14)
+			switch {
+			case x%16 < 3 || y%32 < 3:
+				c = adjust(palette.vent, -6)
+			case x%8 >= 3 && y%32 >= 8 && y%32 < 28:
+				c = color.RGBA{R: 4, G: 5, B: 5, A: 255}
 			}
 			t.set(x, y, c)
+		}
+	}
+	return t
+}
+
+func ductTexture() *texture {
+	t := newTexture(texSize)
+	for y := range texSize {
+		for x := range texSize {
+			// Corrugated sheet metal: horizontal ribs with a lit crest and a
+			// dark trough, riveted seams every 32 texels, and dust.
+			c := palette.vent
+			switch y % 8 {
+			case 0, 1:
+				c = adjust(c, 22)
+			case 4, 5:
+				c = adjust(c, -22)
+			}
+			if x%32 < 2 {
+				c = adjust(c, -28)
+			}
+			if x%32 == 4 && (y%16 == 4 || y%16 == 12) {
+				c = adjust(c, 38)
+			}
+			t.set(x, y, grime(c, x, y))
+		}
+	}
+	return t
+}
+
+func ventCeilingTexture() *texture {
+	t := newTexture(texSize)
+	for y := range texSize {
+		for x := range texSize {
+			// The duct's roof: the same sheet, seamed lengthways and darker.
+			c := adjust(palette.vent, -18)
+			if x%16 < 2 {
+				c = adjust(c, -16)
+			}
+			t.set(x, y, adjust(c, -int(hash(uint32(x), uint32(y)+3)%8)))
 		}
 	}
 	return t

@@ -8,6 +8,7 @@ import (
 	"github.com/danielriddell21/crucible/geom"
 	"github.com/danielriddell21/crucible/hud"
 	"github.com/danielriddell21/crucible/level"
+	"github.com/danielriddell21/crucible/raycast"
 
 	"github.com/danielriddell21/nemesis/internal/sim"
 	"github.com/danielriddell21/nemesis/internal/world"
@@ -370,5 +371,71 @@ func TestGrainCrawlsButStaysDeterministic(t *testing.T) {
 	}
 	if !DefaultConfig().Grain {
 		t.Error("the game's default config should have grain on")
+	}
+}
+
+func ventBox() *world.Level {
+	l := boxLevel()
+	for y := 1; y < 7; y++ {
+		for x := 1; x < 7; x++ {
+			l.Tiles[y*8+x] = world.TileVent
+		}
+	}
+	return l
+}
+
+func TestDuctWallsAreNotStationPlating(t *testing.T) {
+	r := NewRenderer(Config{Width: 64, Height: 48, FOV: 1.152})
+	g := sim.New(ventBox())
+	vent := world.Coord{X: 4, Y: 4}
+	wall := world.Coord{X: 7, Y: 4}
+	if got := r.wallTexture(g, raycast.Hit{Cell: wall, Prev: vent}); got != r.tex.duct {
+		t.Error("a wall bounding a vent should show the duct sheet metal")
+	}
+	floor := sim.New(boxLevel())
+	if got := r.wallTexture(floor, raycast.Hit{Cell: wall, Prev: vent}); got != r.tex.wall {
+		t.Error("a wall bounding a corridor should keep the station plating")
+	}
+}
+
+func TestDuctTexturesAreDistinctAndRibbed(t *testing.T) {
+	ts := buildTextures()
+	if ts.duct == ts.wall || ts.ventCeiling == ts.ceiling {
+		t.Fatal("vent surfaces must not share the station textures")
+	}
+	crest, trough := ts.duct.at(10, 0), ts.duct.at(10, 4)
+	if int(crest.R)-int(trough.R) < 20 {
+		t.Errorf("duct crest %d vs trough %d: want visible corrugation", crest.R, trough.R)
+	}
+	voids := 0
+	for y := range texSize {
+		for x := range texSize {
+			if c := ts.vent.at(x, y); c.R < 10 {
+				voids++
+			}
+		}
+	}
+	if voids < texSize*texSize/10 {
+		t.Errorf("grating has %d void texels, want a hollow-looking floor", voids)
+	}
+}
+
+func TestVentPressDarkensTheEdgesNotTheCentre(t *testing.T) {
+	g := sim.New(ventBox())
+	g.Player.Pos = sim.Vec2{X: 3.5, Y: 3.5}
+	g.Player.Angle = 0
+	cfg := Config{Width: 160, Height: 100, FOV: 1.152}
+	fb := NewRenderer(cfg).Frame(g, 0)
+	edge := func(x int) int {
+		r, gg, b := pixel(fb, 160, x, 50)
+		return r + gg + b
+	}
+	if edge(2) >= edge(80) {
+		t.Errorf("duct edge %d should be darker than the centre %d", edge(2), edge(80))
+	}
+	open := sim.New(boxLevel())
+	open.Player.Pos = sim.Vec2{X: 3.5, Y: 3.5}
+	if bytes.Equal(fb, NewRenderer(cfg).Frame(open, 0)) {
+		t.Error("crawling a vent should look different from walking a room")
 	}
 }

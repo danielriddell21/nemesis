@@ -171,6 +171,9 @@ func (r *Renderer) drawFloorAndCeiling(g *sim.Game, cam raycast.Camera) {
 			t := tex
 			if l.At(cx, cy) == world.TileVent {
 				t = r.tex.vent
+				if tex == r.tex.ceiling {
+					t = r.tex.ventCeiling
+				}
 			}
 			c := t.tile(int((fx-float64(cx))*texSize), int((fy-float64(cy))*texSize))
 			r.putShaded(x, y, c, r.lightAt(cx, cy), dist)

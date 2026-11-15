@@ -21,7 +21,7 @@ func (r *Renderer) drawWalls(g *sim.Game, cam raycast.Camera) {
 		top := h/2 - lineHeight/2
 		bottom := h/2 + lineHeight/2
 
-		tex := r.wallTexture(g, hit.Cell)
+		tex := r.wallTexture(g, hit)
 		texX := int(hit.WallX * texSize)
 		light := r.faceLight(hit)
 		if hit.Side == 1 {
@@ -109,7 +109,8 @@ func doorColumn(g *sim.Game, origin geom.Vec2, rayX, rayY, sideX, sideY, deltaX,
 	return raycast.Hit{Cell: cell, Prev: world.Coord{X: prevX, Y: prevY}, Dist: max(d, 1e-4), Side: side, WallX: wx}, true
 }
 
-func (r *Renderer) wallTexture(g *sim.Game, cell world.Coord) *texture {
+func (r *Renderer) wallTexture(g *sim.Game, hit raycast.Hit) *texture {
+	cell := hit.Cell
 	switch g.World.Level.At(cell.X, cell.Y) {
 	case world.TileDoor:
 		return r.tex.door
@@ -119,6 +120,11 @@ func (r *Renderer) wallTexture(g *sim.Game, cell world.Coord) *texture {
 		}
 		return r.tex.console
 	default:
+		// Whatever bounds a vent cell is the duct's own sheet metal, not
+		// station plating.
+		if g.World.Level.At(hit.Prev.X, hit.Prev.Y) == world.TileVent {
+			return r.tex.duct
+		}
 		return r.tex.wall
 	}
 }
