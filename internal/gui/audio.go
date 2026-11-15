@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"math"
+	"math/rand/v2"
 
 	"github.com/hajimehoshi/ebiten/v2/audio"
 
@@ -28,6 +29,10 @@ type Audio struct {
 	sfxGain     float64
 	ambientGain float64
 	muted       bool
+
+	heart float64
+	growl float64
+	groan float64
 }
 
 func NewAudio() (*Audio, error) {
@@ -84,13 +89,17 @@ func (a *Audio) PlayEvent(e telemetry.Event) {
 	if !ok {
 		return
 	}
+	a.playAt(cue, sim.Vec2{X: float64(e.X) + 0.5, Y: float64(e.Y) + 0.5}, 1)
+}
+
+func (a *Audio) playAt(cue iaudio.Cue, at sim.Vec2, level float64) {
 	pcm, ok := a.pcm[cue]
 	if !ok {
 		return
 	}
-	dx, dy := float64(e.X)+0.5-a.listener.X, float64(e.Y)+0.5-a.listener.Y
+	dx, dy := at.X-a.listener.X, at.Y-a.listener.Y
 	d := math.Hypot(dx, dy)
-	gain := sfxBase * a.sfxGain * (1 - d/maxAudible)
+	gain := level * sfxBase * a.sfxGain * (1 - d/maxAudible)
 	if gain <= 0 {
 		return
 	}
@@ -132,6 +141,40 @@ func (a *Audio) reap(p *audio.Player) {
 	}
 	live = append(live, p)
 	a.voices = live
+}
+
+const (
+	groanGap    = 14.0
+	groanSpread = 20.0
+	groanReach  = 9.0
+)
+
+func (a *Audio) TickTension(dt float64, s *sim.Game) {
+	if a.muted {
+		return
+	}
+	// The sounds with no single event behind them: the player's own
+	// heartbeat, the hunter's breathing, and the hull settling.
+	dist := s.Alien.Pos.Sub(s.Player.Pos).Len()
+	a.heart -= dt
+	fear := iaudio.Fear(dist, s.Alien.State == sim.StateHunt)
+	if every, ok := iaudio.HeartbeatInterval(fear); ok && a.heart <= 0 {
+		a.heart = every
+		a.playAt(iaudio.CueHeartbeat, a.listener, 0.5+0.5*fear)
+	}
+	a.growl -= dt
+	if every, ok := iaudio.GrowlInterval(dist); ok && a.growl <= 0 && s.Alien.State != sim.StateLurk {
+		a.growl = every
+		a.playAt(iaudio.CueGrowl, s.Alien.Pos, 1)
+	}
+	a.groan -= dt
+	if a.groan <= 0 {
+		// Somewhere off in the structure, never the same place twice.
+		a.groan = groanGap + rand.Float64()*groanSpread
+		bearing := rand.Float64() * 2 * math.Pi
+		from := sim.Vec2{X: a.listener.X + math.Cos(bearing)*groanReach, Y: a.listener.Y + math.Sin(bearing)*groanReach}
+		a.playAt(iaudio.CueGroan, from, 1)
+	}
 }
 
 func (a *Audio) TickAmbient(menace float64) {

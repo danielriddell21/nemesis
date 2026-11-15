@@ -34,6 +34,9 @@ type Player struct {
 	Hidden bool
 	Decoys int
 
+	Torch   bool
+	Battery float64
+
 	stepAcc float64
 }
 
@@ -71,10 +74,16 @@ func (g *Game) tickPlayer(in Input, dt float64) noiseEvent {
 		speed = math.Min(speed, sneakSpeed)
 	}
 
+	// Forward plus strafe is a diagonal: cap the combined push at full stick so
+	// it is no faster than walking straight.
+	fwd, strafe := in.Forward, in.Strafe
+	if push := math.Hypot(fwd, strafe); push > 1 {
+		fwd, strafe = fwd/push, strafe/push
+	}
 	dir := p.Dir()
 	strafeX, strafeY := -dir.Y, dir.X
-	dx := (dir.X*in.Forward + strafeX*in.Strafe) * speed * dt
-	dy := (dir.Y*in.Forward + strafeY*in.Strafe) * speed * dt
+	dx := (dir.X*fwd + strafeX*strafe) * speed * dt
+	dy := (dir.Y*fwd + strafeY*strafe) * speed * dt
 	moved := resolveMove(g.World, p.Pos, dx, dy)
 	p.Moving = moved.Sub(p.Pos).Len() > 1e-9
 	p.Pos = moved

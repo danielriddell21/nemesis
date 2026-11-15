@@ -98,7 +98,7 @@ func (g *Game) setAlienTarget(c world.Coord) {
 
 func (g *Game) tickAlien(dt float64, noise noiseEvent) {
 	a := &g.Alien
-	g.senseTick(noise)
+	g.senseTick(dt, noise)
 
 	if a.dwell > 0 {
 		a.dwell -= dt
@@ -119,7 +119,7 @@ func (g *Game) tickAlien(dt float64, noise noiseEvent) {
 	g.moveAlien(dt)
 }
 
-func (g *Game) senseTick(noise noiseEvent) {
+func (g *Game) senseTick(dt float64, noise noiseEvent) {
 	a := &g.Alien
 	if g.alienSees() {
 		if a.State != StateHunt {
@@ -131,7 +131,20 @@ func (g *Game) senseTick(noise noiseEvent) {
 		a.tracked = true
 		return
 	}
+	glow := g.alienNoticesGlow(dt)
 	if a.State == StateHunt {
+		g.reacquire(noise)
+		return
+	}
+	if glow {
+		c := g.Player.Pos.Cell()
+		g.observe(Observation{Kind: ObsAlienGlow, At: a.Pos.Cell(), Target: c, Radius: glowRange})
+		g.depositHeat(c)
+		if a.State == StateLurk {
+			g.director.wake = 0
+		}
+		g.setAlienTarget(c)
+		g.setAlienState(StateInvestigate)
 		return
 	}
 	if g.alienHears(noise) {
@@ -147,6 +160,21 @@ func (g *Game) senseTick(noise noiseEvent) {
 		g.setAlienTarget(c)
 		g.setAlienState(StateInvestigate)
 	}
+}
+
+func (g *Game) reacquire(noise noiseEvent) {
+	// A hunter that has lost sight keeps listening: anything it hears while
+	// the trail is cold drags the chase to the sound.
+	a := &g.Alien
+	if a.tracked || !g.alienHears(noise) {
+		return
+	}
+	if noise.at.Cell() == a.lastKnown.Cell() {
+		return
+	}
+	a.lastKnown = noise.at
+	a.path = nil
+	a.pathIdx = 0
 }
 
 func (g *Game) pingRush(noise noiseEvent) bool {

@@ -6,13 +6,15 @@ import (
 )
 
 const (
-	corridorLight = 0.4
-	ventLight     = 0.15
-	flickerChance = 0.18
+	corridorLight = 0.16
+	ventLight     = 0.07
+	deadLight     = 0.06
+	flickerChance = 0.3
+	deadChance    = 0.2
 )
 
-// assignLight paints each room a steady base glow — some rooms flickering —
-// and drops corridors and vents to their dim constants. It returns the
+// assignLight paints each room a weak base glow — some rooms flickering, some
+// with the fixture blown — and drops corridors and vents to near darkness. It returns the
 // per-cell flicker mask; the light itself lives on the level. crucible/level
 // starts every cell fully lit, so the moods are laid over a cleared field.
 func assignLight(l *level.Level, rng *worldgen.RNG, rooms []Room) []bool {
@@ -21,8 +23,12 @@ func assignLight(l *level.Level, rng *worldgen.RNG, rooms []Room) []bool {
 		l.Light[i] = 0
 	}
 	for _, r := range rooms {
-		base := rng.BetweenF(0.5, 0.9)
+		base := rng.BetweenF(0.22, 0.6)
 		flick := rng.Chance(flickerChance)
+		if !r.Contains(l.Spawn) && rng.Chance(deadChance) {
+			// A blown fixture: the room is black but for what you carry in.
+			base, flick = deadLight, false
+		}
 		for y := r.Y; y < r.Y+r.H; y++ {
 			for x := r.X; x < r.X+r.W; x++ {
 				i := l.Index(x, y)

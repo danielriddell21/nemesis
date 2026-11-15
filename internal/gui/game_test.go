@@ -48,3 +48,62 @@ func TestTrySendNeverBlocks(t *testing.T) {
 		t.Fatalf("channel holds %d messages, want 1", len(ch))
 	}
 }
+
+func TestNoticeCoversTheTorch(t *testing.T) {
+	s := testSim(t)
+	here := s.Player.Pos.Cell()
+	if text, _, ok := notice(telemetry.Event{Type: "battery", X: here.X, Y: here.Y}, s); !ok || text == "" {
+		t.Error("picking up a cell should be announced")
+	}
+	if text, _, ok := notice(telemetry.Event{Type: "alien-glow", X: 1, Y: 1}, s); !ok || text == "" {
+		t.Error("the hunter catching the torchlight should warn the player")
+	}
+	if _, _, ok := notice(telemetry.Event{Type: "torch", X: here.X, Y: here.Y}, s); ok {
+		t.Error("an ordinary flick of the switch needs no caption")
+	}
+	s.Player.Battery = 0
+	if text, _, ok := notice(telemetry.Event{Type: "torch", X: here.X, Y: here.Y}, s); !ok || text == "" {
+		t.Error("a cell giving out should be announced")
+	}
+}
+
+func TestTorchFailingWarnsOncePerCell(t *testing.T) {
+	s := testSim(t)
+	s.Player.Torch = true
+	s.Player.Battery = 0.5
+	warned, post := torchFailing(s, false)
+	if warned || post {
+		t.Error("a healthy cell should not warn")
+	}
+	s.Player.Battery = 0.1
+	warned, post = torchFailing(s, warned)
+	if !warned || !post {
+		t.Error("a cell in its last fifth should warn")
+	}
+	if _, post = torchFailing(s, warned); post {
+		t.Error("the warning should post once, not every tick")
+	}
+	s.Player.Battery = 0.6
+	warned, _ = torchFailing(s, warned)
+	s.Player.Battery = 0.1
+	if _, post = torchFailing(s, warned); !post {
+		t.Error("a fresh cell should re-arm the warning")
+	}
+	s.Player.Torch = false
+	if _, post = torchFailing(s, false); post {
+		t.Error("a torch that is off should not warn")
+	}
+}
+
+func TestStepTapFeedsFootstepsToTheAudioQueue(t *testing.T) {
+	g := &Game{}
+	tap := stepTap{g}
+	tap.Observe(sim.Observation{Kind: sim.ObsStep, At: world.Coord{X: 3, Y: 4}})
+	tap.Observe(sim.Observation{Kind: sim.ObsDoorOpen})
+	if len(g.steps) != 1 || g.steps[0].X != 3 || g.steps[0].Y != 4 {
+		t.Errorf("steps = %+v, want the one footstep at 3,4", g.steps)
+	}
+	if kind, ok := g.steps[0].Kind(); !ok || kind != sim.ObsStep {
+		t.Errorf("queued event kind = %v,%v, want a step", kind, ok)
+	}
+}

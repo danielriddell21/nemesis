@@ -1,7 +1,6 @@
 package render
 
 import (
-	"image/color"
 	"math"
 
 	"github.com/danielriddell21/crucible/geom"
@@ -11,7 +10,7 @@ import (
 	"github.com/danielriddell21/nemesis/internal/world"
 )
 
-func (r *Renderer) drawWalls(g *sim.Game, cam raycast.Camera, now float64) {
+func (r *Renderer) drawWalls(g *sim.Game, cam raycast.Camera) {
 	w, h := r.cfg.Width, r.cfg.Height
 	for x := range w {
 		rayX, rayY := cam.RayDir(x, w)
@@ -24,7 +23,7 @@ func (r *Renderer) drawWalls(g *sim.Game, cam raycast.Camera, now float64) {
 
 		tex := r.wallTexture(g, hit.Cell)
 		texX := int(hit.WallX * texSize)
-		light := r.faceLight(g, hit, now)
+		light := r.faceLight(hit)
 		if hit.Side == 1 {
 			light *= 0.8
 		}
@@ -37,6 +36,7 @@ func (r *Renderer) drawWalls(g *sim.Game, cam raycast.Camera, now float64) {
 		if bottom > h {
 			bottom = h
 		}
+		r.wallTop[x], r.wallEnd[x] = top, bottom
 		for y := top; y < bottom; y++ {
 			c := tex.at(texX, int(texPos))
 			texPos += step
@@ -123,41 +123,12 @@ func (r *Renderer) wallTexture(g *sim.Game, cell world.Coord) *texture {
 	}
 }
 
-func (r *Renderer) faceLight(g *sim.Game, hit raycast.Hit, now float64) float64 {
+func (r *Renderer) faceLight(hit raycast.Hit) float64 {
 	// A wall face borrows the light of the open cell the ray crossed last, so
 	// faces bounding a dark corridor stay dark.
-	l := g.World.Level
-	light := l.LightAt(hit.Prev.X, hit.Prev.Y)
+	light := r.lightAt(hit.Prev.X, hit.Prev.Y)
 	if light <= 0 {
-		light = 0.3
-	}
-	if l.At(hit.Prev.X, hit.Prev.Y) == world.TileVent {
-		light = math.Min(light, 0.2)
-	}
-	if l.FlickerAt(hit.Prev.X, hit.Prev.Y) {
-		light *= flicker(now)
+		light = unlitCell
 	}
 	return light
-}
-
-func flicker(now float64) float64 {
-	// A failing fixture: mostly on, with irregular dips driven by beating
-	// sine waves so the stutter never quite repeats.
-	v := math.Sin(now*13) + math.Sin(now*7.3+1.7) + math.Sin(now*29*math.Pi/10)
-	if v < -1.2 {
-		return 0.25
-	}
-	return 1
-}
-
-func (r *Renderer) putShaded(x, y int, c color.RGBA, light, dist float64) {
-	k := light * 1.25 / (1 + dist*dist*0.035)
-	if k > 1 {
-		k = 1
-	}
-	i := (y*r.cfg.Width + x) * 4
-	r.fb[i] = uint8(float64(c.R) * k)
-	r.fb[i+1] = uint8(float64(c.G) * k)
-	r.fb[i+2] = uint8(float64(c.B) * k)
-	r.fb[i+3] = 255
 }

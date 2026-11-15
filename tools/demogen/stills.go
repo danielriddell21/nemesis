@@ -21,10 +21,15 @@ func stills() error {
 	g.Player.Angle = longestSightline(g, l)
 	d := g.Player.Dir()
 	g.Alien.Pos = sim.Vec2{X: g.Player.Pos.X + d.X*7, Y: g.Player.Pos.Y + d.Y*7}
+	// Torch on: the still shows the hunter caught in the beam, the tracker up
+	// and the battery gauge live.
+	g.Tick(sim.Input{Torch: true}, tickDT)
 	for range 40 {
 		g.Tick(sim.Input{Tracker: true}, tickDT)
 	}
-	r := render.NewRenderer(render.DefaultConfig(), render.WithOverlay(hud.New()))
+	rc := render.DefaultConfig()
+	rc.Grain = false
+	r := render.NewRenderer(rc, render.WithOverlay(hud.New()))
 	fb := r.Frame(g, 3.0)
 	cfg := r.Config()
 	return writePNG("docs/demos/game.png", fb, cfg.Width, cfg.Height)

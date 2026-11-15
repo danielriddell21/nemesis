@@ -26,6 +26,11 @@ const (
 	CueDecoy
 	CueMenuMove
 	CueMenuSelect
+	CueTorch
+	CueBattery
+	CueHeartbeat
+	CueGrowl
+	CueGroan
 )
 
 func CueFor(k sim.ObservationKind) (Cue, bool) {
@@ -42,8 +47,12 @@ func CueFor(k sim.ObservationKind) (Cue, bool) {
 		return CueConsole, true
 	case sim.ObsDecoy:
 		return CueDecoy, true
-	case sim.ObsAlienHeard:
+	case sim.ObsAlienHeard, sim.ObsAlienGlow:
 		return CueHiss, true
+	case sim.ObsTorch:
+		return CueTorch, true
+	case sim.ObsBattery:
+		return CueBattery, true
 	case sim.ObsAlienSeen:
 		return CueScreech, true
 	case sim.ObsDeath:
@@ -69,6 +78,11 @@ func Synth() map[Cue][]byte {
 		CueDecoy:      synthDecoy(),
 		CueMenuMove:   synthMenuMove(),
 		CueMenuSelect: synthMenuSelect(),
+		CueTorch:      synthTorch(),
+		CueBattery:    synthBattery(),
+		CueHeartbeat:  synthHeartbeat(),
+		CueGrowl:      synthGrowl(),
+		CueGroan:      synthGroan(),
 	}
 }
 
@@ -94,17 +108,25 @@ func Ambient(band int) []byte {
 		band = maxMenaceBand
 	}
 	// The station's air handlers: a low drone that flattens, quickens and
-	// gains a metallic edge as the hunter closes in.
-	detune := float64(band) * 0.8
+	// gains a metallic edge as the hunter closes in. Under it sits a rumble
+	// felt more than heard, and as the menace climbs a tritone and a thin
+	// whine sour the chord. Every partial completes a whole number of cycles
+	// in the loop, so the seam is silent.
+	detune := float64(band) * 0.75
 	pulses := float64(2 + band)
 	edgeAmp := 0.02 * float64(band)
+	dread := 0.03 * float64(max(band-1, 0))
+	whine := 0.012 * float64(max(band-2, 0))
 	return synth.Render(ambientLoop, func(t float64) float64 {
 		pulse := 0.6 + 0.4*math.Sin(2*math.Pi*(pulses/ambientLoop)*t-math.Pi/2)
 		v := 0.16*math.Sin(2*math.Pi*(48-detune)*t) +
 			0.10*math.Sin(2*math.Pi*(72-detune)*t) +
 			0.06*math.Sin(2*math.Pi*(96-detune*2)*t)
-		edge := edgeAmp * math.Sin(2*math.Pi*233*t) * math.Sin(2*math.Pi*0.9*t)
-		return v*pulse + edge
+		rumble := 0.07 * math.Sin(2*math.Pi*31*t) * (0.7 + 0.3*math.Sin(2*math.Pi*0.25*t))
+		edge := edgeAmp * math.Sin(2*math.Pi*233*t) * math.Sin(2*math.Pi*0.875*t)
+		tritone := dread * math.Sin(2*math.Pi*68*t) * (0.5 + 0.5*math.Sin(2*math.Pi*0.375*t))
+		shrill := whine * math.Sin(2*math.Pi*(932+6*math.Sin(2*math.Pi*0.5*t))*t)
+		return v*pulse + rumble + edge + tritone + shrill
 	})
 }
 
@@ -212,6 +234,98 @@ func synthMenuSelect() []byte {
 		}
 		return 0.22 * synth.Env(t, 14) * square(2*math.Pi*f*t)
 	})
+}
+
+func synthTorch() []byte {
+	noise := synth.Noise(0x51ee7, 0xbeef)
+	return synth.Render(0.07, func(t float64) float64 {
+		// A stiff switch: one dry click.
+		return synth.Env(t, 90) * (0.35*noise() + 0.2*math.Sin(2*math.Pi*2100*t))
+	})
+}
+
+func synthBattery() []byte {
+	return synth.Render(0.4, func(t float64) float64 {
+		// A cell seating home, then the charge lamp's rising two-note chirp.
+		clack := 0.25 * synth.Env(t, 70) * math.Sin(2*math.Pi*180*t)
+		f := 520.0
+		if t > 0.16 {
+			f = 780
+		}
+		chirp := 0.0
+		if t > 0.06 {
+			chirp = 0.16 * synth.Env(t-0.06, 9) * math.Sin(2*math.Pi*f*t)
+		}
+		return clack + chirp
+	})
+}
+
+func synthHeartbeat() []byte {
+	return synth.Render(0.36, func(t float64) float64 {
+		// Lub-dub: two soft thuds, the second lighter and a touch higher.
+		lub := 0.5 * synth.Env(t, 26) * math.Sin(2*math.Pi*52*t)
+		dub := 0.0
+		if t > 0.16 {
+			u := t - 0.16
+			dub = 0.34 * synth.Env(u, 30) * math.Sin(2*math.Pi*64*u)
+		}
+		return lub + dub
+	})
+}
+
+func synthGrowl() []byte {
+	noise := synth.Noise(0x9a11, 0x7e57)
+	return synth.Render(1.1, func(t float64) float64 {
+		// A wet, rattling breath: a low throat tone chopped by a slow flutter
+		// under a wash of air.
+		shape := math.Sin(math.Pi * math.Min(t/1.1, 1))
+		flutter := 0.55 + 0.45*square(2*math.Pi*23*t)
+		throat := math.Sin(2*math.Pi*(74-18*t)*t) + 0.5*math.Sin(2*math.Pi*(111-27*t)*t)
+		return 0.22 * shape * (throat*flutter + 0.35*noise())
+	})
+}
+
+func synthGroan() []byte {
+	return synth.Render(2.2, func(t float64) float64 {
+		// The hull settling: a long metal moan that sags as it fades.
+		shape := math.Sin(math.Pi * math.Min(t/2.2, 1))
+		f := 96 - 14*t
+		v := math.Sin(2*math.Pi*f*t) + 0.4*math.Sin(2*math.Pi*f*2.76*t) + 0.2*math.Sin(2*math.Pi*f*5.4*t)
+		return 0.13 * shape * v * (0.7 + 0.3*math.Sin(2*math.Pi*3.1*t))
+	})
+}
+
+const (
+	fearRange   = 14.0
+	fearFloor   = 0.15
+	slowestBeat = 1.1
+	fastestBeat = 0.38
+	growlRange  = 11.0
+)
+
+func Fear(dist float64, hunting bool) float64 {
+	// How hard the player's heart should pound: nothing with the hunter far
+	// off, rising as it closes, and pinned high while it is in full chase.
+	f := 1 - dist/fearRange
+	if hunting {
+		f = math.Max(f, 0.75)
+	}
+	return math.Max(0, math.Min(1, f))
+}
+
+func HeartbeatInterval(fear float64) (float64, bool) {
+	if fear < fearFloor {
+		return 0, false
+	}
+	return slowestBeat - (slowestBeat-fastestBeat)*fear, true
+}
+
+func GrowlInterval(dist float64) (float64, bool) {
+	// The hunter breathes: the closer it is, the more often it can be heard.
+	if dist > growlRange {
+		return 0, false
+	}
+	return 2.5 + 4*dist/growlRange, true
 }
 
 func square(phase float64) float64 {

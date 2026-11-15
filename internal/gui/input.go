@@ -23,6 +23,9 @@ func (g *Game) readInput() sim.Input {
 	if ebiten.IsKeyPressed(ebiten.KeyF) {
 		in.Hide = true
 	}
+	if ebiten.IsKeyPressed(ebiten.KeyR) {
+		in.Torch = true
+	}
 	if ebiten.IsKeyPressed(ebiten.KeyQ) || ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) {
 		in.Throw = true
 	}

@@ -30,9 +30,14 @@ fmt:
 tidy:
     go mod tidy
 
-# full gate: lint + test + build. all must pass before committing
+# balance gate: the pilot plays 100 seeds, hunter off then on. fails on a missed pass mark
+[group('test')]
+eval:
+    go run ./tools/eval
+
+# full gate: lint + test + build + eval. all must pass before committing
 [group('dev')]
-ci: lint test build
+ci: lint test build eval
 
 # build and run
 [group('run')]

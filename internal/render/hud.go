@@ -25,6 +25,7 @@ const (
 
 func (r *Renderer) drawHUD(g *sim.Game, now float64) {
 	r.drawStatusLine(g)
+	r.drawBattery(g, now)
 	r.drawOverlayMessage()
 	r.drawTracker(g, now)
 	switch {
@@ -55,6 +56,46 @@ func (r *Renderer) drawStatusLine(g *sim.Game) {
 		r.drawText(line.X+1, line.Y+1, line.Text, palette.hudDrop)
 		r.drawText(line.X, line.Y, line.Text, palette.tracker)
 	}
+}
+
+const batterySegments = 10
+
+func (r *Renderer) drawBattery(g *sim.Game, now float64) {
+	// The torch gauge sits bottom-right: bright while the beam is on, dim
+	// while it is off, and blinking red once the cell is nearly spent.
+	const segW, segH, gap = 5, 7, 2
+	charge := g.Player.Battery
+	c := palette.hudDim
+	switch {
+	case charge < sim.TorchLowMark && math.Mod(now, 0.6) < 0.3:
+		c = palette.exitLocked
+	case g.Player.Torch:
+		c = palette.hudText
+	}
+	label := "TORCH"
+	width := batterySegments*(segW+gap) - gap
+	x0 := r.cfg.Width - hudMarginX - width
+	y0 := r.cfg.Height - 8 - segH
+	lx := x0 - len(label)*glyphWidth - 6
+	r.drawText(lx+1, r.cfg.Height-7, label, palette.hudDrop)
+	r.drawText(lx, r.cfg.Height-8, label, c)
+	lit := batteryLit(charge)
+	for i := range batterySegments {
+		seg := c
+		if i >= lit {
+			seg = paint.Scale(palette.hudDim, 0.3)
+		}
+		for y := y0; y < y0+segH; y++ {
+			for x := x0 + i*(segW+gap); x < x0+i*(segW+gap)+segW; x++ {
+				r.putPixel(x, y, seg)
+			}
+		}
+	}
+}
+
+func batteryLit(charge float64) int {
+	// Round up, so the last segment only goes out when the cell is truly flat.
+	return min(batterySegments, int(math.Ceil(charge*batterySegments-1e-9)))
 }
 
 // actionPrompt returns the contextual control hint for what the player is doing

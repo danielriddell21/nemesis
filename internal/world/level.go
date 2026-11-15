@@ -1,6 +1,8 @@
 package world
 
 import (
+	"slices"
+
 	"github.com/danielriddell21/crucible/geom"
 	"github.com/danielriddell21/crucible/level"
 )
@@ -36,10 +38,15 @@ const (
 // per-cell flicker of failing light fixtures.
 type Level struct {
 	*level.Level
-	Rooms    []Room
-	Consoles []Coord
-	Lockers  []Coord
-	Flicker  []bool
+	Rooms     []Room
+	Consoles  []Coord
+	Lockers   []Coord
+	Batteries []Coord
+	Flicker   []bool
+}
+
+func (l *Level) BatteryAt(c Coord) bool {
+	return slices.Contains(l.Batteries, c)
 }
 
 // FlickerAt reports whether the light fixture over (x, y) is a failing one

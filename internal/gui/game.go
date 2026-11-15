@@ -50,6 +50,8 @@ type Game struct {
 	deck           int
 	carried        sim.Learned
 	events         []telemetry.Event
+	steps          []telemetry.Event
+	torchWarned    bool
 	now            float64
 	recorded       bool
 	quit           bool
@@ -88,6 +90,16 @@ func NewGame(cfg Config, seed int64, overlay *hud.Overlay, audio *Audio, records
 
 func (g *Game) OnEvent(e telemetry.Event) {
 	g.events = append(g.events, e)
+}
+
+type stepTap struct{ g *Game }
+
+func (t stepTap) Observe(o sim.Observation) {
+	// The telemetry bus drops footsteps to keep the feed readable, so the
+	// audio layer listens for them here instead.
+	if o.Kind == sim.ObsStep {
+		t.g.steps = append(t.g.steps, telemetry.FromObservation(o))
+	}
 }
 
 func (g *Game) Update() error {
@@ -139,6 +151,7 @@ func (g *Game) updatePlaying() error {
 	g.playCues()
 	g.publish()
 	g.events = g.events[:0]
+	g.steps = g.steps[:0]
 	g.overlay.Tick()
 	return nil
 }
@@ -209,13 +222,15 @@ func (g *Game) startDeck() {
 	}
 	fmt.Printf("nemesis — deck %d, seed %d\n", g.deck+1, seed)
 	g.sim = sim.New(level,
-		sim.WithObserver(telemetry.NewBus(g)),
+		sim.WithObserver(sim.Fanout(telemetry.NewBus(g), stepTap{g})),
 		sim.WithLearned(g.carried),
 		sim.WithDepth(g.deck),
 	)
 	g.recorded = false
 	g.events = g.events[:0]
-	g.overlay.Post("BRING THE GENERATORS ONLINE - THEN THE AIRLOCK", 240, hud.Notice)
+	g.steps = g.steps[:0]
+	g.torchWarned = false
+	g.overlay.Post("GENERATORS ONLINE, THEN THE AIRLOCK - [R] TORCH", 300, hud.Notice)
 	g.state = statePlaying
 	g.sendHello()
 }
@@ -243,6 +258,10 @@ func (g *Game) postNotices() {
 			g.overlay.Post(text, frames, hud.Notice)
 		}
 	}
+	var post bool
+	if g.torchWarned, post = torchFailing(g.sim, g.torchWarned); post {
+		g.overlay.Post("TORCH FAILING", noticeFrames, hud.Notice)
+	}
 }
 
 func (g *Game) playCues() {
@@ -253,7 +272,11 @@ func (g *Game) playCues() {
 	for _, e := range g.events {
 		g.audio.PlayEvent(e)
 	}
+	for _, e := range g.steps {
+		g.audio.PlayEvent(e)
+	}
 	g.audio.TickAmbient(g.sim.Menace())
+	g.audio.TickTension(tickDT, g.sim)
 }
 
 func (g *Game) publish() {

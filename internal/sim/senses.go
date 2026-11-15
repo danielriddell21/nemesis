@@ -7,10 +7,10 @@ import (
 )
 
 const (
-	visionRange = 11.0
+	visionRange = 13.0
 	visionFOV   = 1.9
 
-	hearingFloor = 0.75
+	hearingFloor = 0.85
 )
 
 func (g *Game) lineOfSight(a, b Vec2) bool {
@@ -62,9 +62,13 @@ func (g *Game) alienSees() bool {
 		// Inside a locker there is nothing to see; only a breach finds you.
 		return false
 	}
-	to := g.Player.Pos.Sub(g.Alien.Pos)
+	return g.inSight(g.Player.Pos, g.effectiveVisionRange())
+}
+
+func (g *Game) inSight(pos Vec2, reach float64) bool {
+	to := pos.Sub(g.Alien.Pos)
 	dist := to.Len()
-	if dist > g.effectiveVisionRange() {
+	if dist > reach {
 		return false
 	}
 	if dist > 1e-9 {
@@ -73,17 +77,30 @@ func (g *Game) alienSees() bool {
 			return false
 		}
 	}
-	return g.lineOfSight(g.Alien.Pos, g.Player.Pos)
+	return g.lineOfSight(g.Alien.Pos, pos)
+}
+
+func (g *Game) Exposed(c world.Coord) bool {
+	return g.inSight(cellCenter(c), g.visionRangeAt(c, false))
 }
 
 func (g *Game) effectiveVisionRange() float64 {
-	c := g.Player.Pos.Cell()
+	still := !g.Player.Moving && g.Player.Mode == ModeSneak
+	return g.visionRangeAt(g.Player.Pos.Cell(), still)
+}
+
+func (g *Game) visionRangeAt(c world.Coord, still bool) float64 {
 	light := g.World.Level.LightAt(c.X, c.Y)
 	// Darkness shortens the hunter's sight; holding still while sneaking
 	// shortens it further. It always spots you at arm's length.
-	r := visionRange * (0.35 + light)
-	if !g.Player.Moving && g.Player.Mode == ModeSneak {
+	r := visionRange * (0.4 + light)
+	if still {
 		r *= 0.55
+	}
+	if g.TorchLit() {
+		// A lit torch is a beacon: no shadow or stillness hides the hand
+		// holding it.
+		r = math.Max(r, torchSightRange)
 	}
 	return math.Max(r, 1.6)
 }

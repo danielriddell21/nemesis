@@ -17,6 +17,8 @@ func (g *Game) tickHide(in Input) {
 		return
 	}
 	p.Hidden = true
+	// The beam would pour out through the slats, so it goes dark with you.
+	g.setTorch(false)
 	g.observe(Observation{Kind: ObsHide, At: p.Pos.Cell()})
 	// If the hunter is actively looking and close by when the prey ducks in, it
 	// learns that lockers are worth checking.

@@ -18,6 +18,15 @@ type Renderer struct {
 	zbuf    []float64
 	tex     *textureSet
 	overlay *hud.Overlay
+
+	cone     []float32
+	vignette []uint16
+	wallTop  []int
+	wallEnd  []int
+
+	cellLight      []float64
+	levelW, levelH int
+	torch          float64
 }
 
 type Option func(*Renderer)
@@ -36,6 +45,7 @@ func NewRenderer(cfg Config, opts ...Option) *Renderer {
 	for _, opt := range opts {
 		opt(r)
 	}
+	r.buildMasks()
 	return r
 }
 
@@ -45,33 +55,14 @@ func (r *Renderer) SetFOV(fov float64) { r.cfg.FOV = fov }
 
 func (r *Renderer) Frame(g *sim.Game, now float64) []byte {
 	cam := raycast.NewCamera(geom.Vec2{X: g.Player.Pos.X, Y: g.Player.Pos.Y}, g.Player.Angle, r.cfg.FOV)
-	r.drawBackdrop()
-	r.drawWalls(g, cam, now)
+	r.lightScene(g, now)
+	r.drawWalls(g, cam)
+	r.drawFloorAndCeiling(g, cam)
 	r.drawSprites(g, cam, now)
+	r.grade(now)
 	r.drawEffects(g, now)
 	r.drawHUD(g, now)
 	return r.fb
-}
-
-func (r *Renderer) drawBackdrop() {
-	w, h := r.cfg.Width, r.cfg.Height
-	half := h / 2
-	for y := range h {
-		// Rows darken toward the horizon: distant floor and ceiling recede
-		// into the station gloom.
-		var c [4]byte
-		if y < half {
-			depth := float64(half-y) / float64(half)
-			c = paint.ScaleBytes(palette.ceiling, 0.25+0.75*depth)
-		} else {
-			depth := float64(y-half+1) / float64(half)
-			c = paint.ScaleBytes(palette.floor, 0.25+0.75*depth)
-		}
-		row := r.fb[y*w*4 : (y+1)*w*4]
-		for x := 0; x < w*4; x += 4 {
-			row[x], row[x+1], row[x+2], row[x+3] = c[0], c[1], c[2], c[3]
-		}
-	}
 }
 
 func (r *Renderer) drawEffects(g *sim.Game, now float64) {

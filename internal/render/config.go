@@ -6,10 +6,11 @@ type Config struct {
 	Width  int
 	Height int
 	FOV    float64
+	Grain  bool
 }
 
 func DefaultConfig() Config {
-	return Config{Width: 640, Height: 400, FOV: 1.152}
+	return Config{Width: 640, Height: 400, FOV: 1.152, Grain: true}
 }
 
 var palette = struct {
@@ -31,11 +32,11 @@ var palette = struct {
 	deathTint     color.RGBA
 	escapeTint    color.RGBA
 }{
-	ceiling:       color.RGBA{R: 24, G: 27, B: 33, A: 255},
-	floor:         color.RGBA{R: 44, G: 47, B: 53, A: 255},
-	wall:          color.RGBA{R: 128, G: 138, B: 150, A: 255},
+	ceiling:       color.RGBA{R: 58, G: 64, B: 66, A: 255},
+	floor:         color.RGBA{R: 82, G: 86, B: 84, A: 255},
+	wall:          color.RGBA{R: 112, G: 124, B: 128, A: 255},
 	door:          color.RGBA{R: 150, G: 122, B: 76, A: 255},
-	vent:          color.RGBA{R: 88, G: 78, B: 64, A: 255},
+	vent:          color.RGBA{R: 70, G: 68, B: 62, A: 255},
 	console:       color.RGBA{R: 96, G: 130, B: 138, A: 255},
 	consoleActive: color.RGBA{R: 70, G: 160, B: 96, A: 255},
 	alien:         color.RGBA{R: 26, G: 20, B: 30, A: 255},

@@ -20,6 +20,11 @@ const (
 	ObsAlienCreak
 	ObsDirectorNudge
 	ObsAlienLearn
+	ObsAlienGlow
+	ObsTorch
+	ObsBattery
+
+	ObsKindCount
 )
 
 var obsNames = [...]string{
@@ -38,6 +43,9 @@ var obsNames = [...]string{
 	ObsAlienCreak:    "alien-creak",
 	ObsDirectorNudge: "director-nudge",
 	ObsAlienLearn:    "alien-learn",
+	ObsAlienGlow:     "alien-glow",
+	ObsTorch:         "torch",
+	ObsBattery:       "battery",
 }
 
 func (k ObservationKind) String() string {

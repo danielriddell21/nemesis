@@ -26,6 +26,8 @@ type Config struct {
 
 	Lockers int
 
+	Batteries int
+
 	MaxAttempts int
 }
 
@@ -48,6 +50,12 @@ func (c Config) normalized() Config {
 	if c.Lockers < 0 {
 		c.Lockers = 0
 	}
+	if c.Batteries == 0 {
+		c.Batteries = 3
+	}
+	if c.Batteries < 0 {
+		c.Batteries = 0
+	}
 	if c.MaxAttempts <= 0 {
 		c.MaxAttempts = 32
 	}
@@ -56,7 +64,8 @@ func (c Config) normalized() Config {
 
 // Generate digs a deck: crucible/level runs the room-and-corridor pipeline,
 // carves the vent networks, and hangs the doors; nemesis's passes then mount
-// the consoles, recess the lockers, and set the light moods. It retries with
+// the consoles, recess the lockers, set the light moods, and scatter spare
+// torch cells. It retries with
 // derived seeds until the layout is connected and playable.
 func Generate(cfg Config) (*Level, error) {
 	cfg = cfg.normalized()
@@ -76,6 +85,9 @@ func Generate(cfg Config) (*Level, error) {
 		},
 		func(l *level.Level, rng *worldgen.RNG, rooms []Room) {
 			deck.Flicker = assignLight(l, rng, rooms)
+		},
+		func(l *level.Level, rng *worldgen.RNG, rooms []Room) {
+			deck.Batteries = placeBatteries(l, rng, rooms, cfg.Batteries)
 		},
 	}
 	validate := func(l *level.Level) bool { return viable(l, deck, cfg) }

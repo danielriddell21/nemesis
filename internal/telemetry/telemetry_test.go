@@ -90,3 +90,36 @@ func TestLiveGameFeedsBus(t *testing.T) {
 		t.Error("a raised tracker should feed ping events through the bus")
 	}
 }
+
+func TestTorchEventsRoundTripThroughTheBus(t *testing.T) {
+	cases := []struct {
+		obs  sim.Observation
+		want string
+	}{
+		// The switch is flicked constantly and triggers nothing by itself, so
+		// it stays out of the hunter's feed.
+		{sim.Observation{Kind: sim.ObsTorch, At: world.Coord{X: 3, Y: 4}}, ""},
+		{sim.Observation{Kind: sim.ObsBattery, At: world.Coord{X: 5, Y: 6}}, "TORCH CELL TAKEN AT 5 6"},
+		{sim.Observation{Kind: sim.ObsAlienGlow, At: world.Coord{X: 1, Y: 1}, Target: world.Coord{X: 7, Y: 8}}, "HUNTER NOTICED TORCHLIGHT AT 7 8"},
+	}
+	for _, c := range cases {
+		e := FromObservation(c.obs)
+		if got := e.Line(); got != c.want {
+			t.Errorf("Line() = %q, want %q", got, c.want)
+		}
+		if kind, ok := e.Kind(); !ok || kind != c.obs.Kind {
+			t.Errorf("Kind() of %q = %v,%v, want %v", e.Type, kind, ok, c.obs.Kind)
+		}
+	}
+}
+
+func TestEveryObservationKindHasANameAndRoundTrips(t *testing.T) {
+	for k := sim.ObsStep; k < sim.ObsKindCount; k++ {
+		if k.String() == "unknown" {
+			t.Errorf("kind %d has no name", k)
+		}
+		if got, ok := FromObservation(sim.Observation{Kind: k}).Kind(); !ok || got != k {
+			t.Errorf("kind %v does not survive the event round trip: %v,%v", k, got, ok)
+		}
+	}
+}

@@ -27,7 +27,10 @@ func recordCorridors(path string) error {
 	if err := s.start(); err != nil {
 		return err
 	}
-	r := render.NewRenderer(render.DefaultConfig())
+	// Film grain is noise a GIF palette cannot hold; the clip renders clean.
+	rc := render.DefaultConfig()
+	rc.Grain = false
+	r := render.NewRenderer(rc)
 	cfg := r.Config()
 	// Frames are pre-downscaled with a gamma lift below, so the recorder keeps
 	// scale 1 and only handles the delta-frame GIF encoding.

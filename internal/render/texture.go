@@ -25,8 +25,15 @@ func (t *texture) at(u, v int) color.RGBA {
 	return t.pix[(v%t.h)*t.w+u%t.w]
 }
 
+func (t *texture) tile(u, v int) color.RGBA {
+	// Deck textures are square and a power of two wide, so wrapping is a mask.
+	return t.pix[(v&(texSize-1))*texSize+u&(texSize-1)]
+}
+
 type textureSet struct {
 	wall          *texture
+	floor         *texture
+	ceiling       *texture
 	door          *texture
 	vent          *texture
 	console       *texture
@@ -34,11 +41,14 @@ type textureSet struct {
 	alien         [2]*texture
 	locker        *texture
 	decoy         *texture
+	battery       [2]*texture
 }
 
 func buildTextures() *textureSet {
 	return &textureSet{
 		wall:          wallTexture(),
+		floor:         floorTexture(),
+		ceiling:       ceilingTexture(),
 		door:          doorTexture(),
 		vent:          ventTexture(),
 		console:       consoleTexture(palette.console, false),
@@ -46,6 +56,7 @@ func buildTextures() *textureSet {
 		alien:         [2]*texture{alienTexture(-1), alienTexture(1)},
 		locker:        lockerTexture(),
 		decoy:         decoyTexture(),
+		battery:       [2]*texture{batteryTexture(false), batteryTexture(true)},
 	}
 }
 
@@ -66,6 +77,61 @@ func wallTexture() *texture {
 			if (x*7+y*13)%31 == 0 {
 				c = adjust(c, -12)
 			}
+			t.set(x, y, grime(c, x, y))
+		}
+	}
+	return t
+}
+
+func grime(c color.RGBA, x, y int) color.RGBA {
+	// Years of neglect: damp creeping up from the deck, rust weeping down
+	// from a few seams, and a fine mottling of dirt over everything.
+	c = adjust(c, -int(hash(uint32(x), uint32(y))%14))
+	if y > 44 {
+		c = adjust(c, -(y-44)*2)
+	}
+	if streak := hash(uint32(x/2), 77) % 13; streak == 0 && y > 16 && y < 16+int(hash(uint32(x/2), 5)%40) {
+		c = color.RGBA{R: clampByte(int(c.R) - 6), G: clampByte(int(c.G) - 26), B: clampByte(int(c.B) - 38), A: 255}
+	}
+	return c
+}
+
+func floorTexture() *texture {
+	t := newTexture(texSize)
+	for y := range texSize {
+		for x := range texSize {
+			c := palette.floor
+			// Deck plating: a seam round each tile, a tread pattern across
+			// it, and stains pooled at random.
+			if x < 2 || y < 2 {
+				c = adjust(c, -22)
+			} else if (x+y)%8 == 0 {
+				c = adjust(c, 10)
+			}
+			c = adjust(c, -int(hash(uint32(x/4), uint32(y/4))%16))
+			if hash(uint32(x/8), uint32(y/8)+31)%7 == 0 {
+				c = adjust(c, -18)
+			}
+			t.set(x, y, c)
+		}
+	}
+	return t
+}
+
+func ceilingTexture() *texture {
+	t := newTexture(texSize)
+	for y := range texSize {
+		for x := range texSize {
+			c := palette.ceiling
+			// Ceiling panels in half-tile squares with a conduit run down one
+			// side.
+			if x%32 < 2 || y%32 < 2 {
+				c = adjust(c, -18)
+			}
+			if x > 44 && x < 52 {
+				c = adjust(c, 14)
+			}
+			c = adjust(c, -int(hash(uint32(x/4)+9, uint32(y/4))%10))
 			t.set(x, y, c)
 		}
 	}
@@ -147,6 +213,7 @@ func alienTexture(sway int) *texture {
 	}
 	body := palette.alien
 	sheen := adjust(body, 24)
+	eye := color.RGBA{R: 196, G: 226, B: 178, A: glowAlpha}
 	// A tall silhouette: elongated head, hunched torso, whip tail. The legs and
 	// tail lean by `sway` so two frames give a slinking walk cycle.
 	for y := range h {
@@ -166,6 +233,11 @@ func alienTexture(sway int) *texture {
 			}
 			t.set(x, y, c)
 		}
+	}
+	// Two pale points in the skull: in the dark they are all that shows.
+	for _, dx := range [2]int{-2, 2} {
+		t.set(w/2+dx, 6, eye)
+		t.set(w/2+dx, 7, eye)
 	}
 	return t
 }
@@ -229,6 +301,32 @@ func decoyTexture() *texture {
 				if dx*dx+dy*dy <= 6 {
 					c = glow // blinking core
 				}
+			}
+			t.set(x, y, c)
+		}
+	}
+	return t
+}
+
+func batteryTexture(blink bool) *texture {
+	const w = 32
+	t := newTexture(w)
+	shell := color.RGBA{R: 74, G: 70, B: 48, A: 255}
+	band := color.RGBA{R: 150, G: 132, B: 44, A: 255}
+	lamp := color.RGBA{R: 120, G: 240, B: 130, A: glowAlpha}
+	if !blink {
+		lamp = color.RGBA{R: 40, G: 96, B: 52, A: glowAlpha}
+	}
+	// A squat power cell lying on the deck, with a charge lamp that blinks so
+	// it can be found in the dark.
+	for y := 46; y < 62; y++ {
+		for x := 9; x < 23; x++ {
+			c := shell
+			switch {
+			case y > 50 && y < 54:
+				c = band
+			case y < 49 && x > 13 && x < 18:
+				c = lamp
 			}
 			t.set(x, y, c)
 		}

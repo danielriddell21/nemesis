@@ -2,6 +2,7 @@ package render
 
 import (
 	"image/color"
+	"math"
 
 	"github.com/danielriddell21/crucible/geom"
 	"github.com/danielriddell21/crucible/raycast"
@@ -17,6 +18,8 @@ type billboard struct {
 	scale   float64
 }
 
+const glowAlpha = 254
+
 func (r *Renderer) drawSprites(g *sim.Game, cam raycast.Camera, now float64) {
 	// Draw far-to-near so nearer sprites overwrite farther ones where they
 	// overlap. The z-buffer already clips against walls.
@@ -26,6 +29,16 @@ func (r *Renderer) drawSprites(g *sim.Game, cam raycast.Camera, now float64) {
 			pos:   sim.Vec2{X: float64(c.X) + 0.5, Y: float64(c.Y) + 0.5},
 			tex:   r.tex.locker,
 			scale: 0.9,
+		})
+	}
+	for _, c := range g.World.Level.Batteries {
+		if g.BatteryTaken(c) {
+			continue
+		}
+		boards = append(boards, billboard{
+			pos:   sim.Vec2{X: float64(c.X) + 0.5, Y: float64(c.Y) + 0.5},
+			tex:   r.tex.battery[int(now*2)&1],
+			scale: 0.5,
 		})
 	}
 	if d := g.DecoyState(); d.Active {
@@ -76,6 +89,7 @@ func (r *Renderer) drawBillboard(b billboard, cam raycast.Camera) {
 	drawEnd := min(p.Top+p.Size, h)
 	left := p.ScreenX - p.Size/4
 	right := p.ScreenX + p.Size/4
+	light := max(r.lightAt(int(math.Floor(b.pos.X)), int(math.Floor(b.pos.Y))), 0.04)
 	for x := max(left, 0); x < min(right, w); x++ {
 		if p.Depth >= r.zbuf[x] {
 			continue
@@ -86,7 +100,13 @@ func (r *Renderer) drawBillboard(b billboard, cam raycast.Camera) {
 			if !ok {
 				continue
 			}
-			r.putShaded(x, y, c, 0.9, p.Depth)
+			// A texel tagged with glowAlpha is self-lit: it shows at its own
+			// colour however dark the cell it stands in.
+			if b.useTint || c.A == glowAlpha {
+				r.putGlow(x, y, c, p.Depth)
+				continue
+			}
+			r.putShaded(x, y, c, light, p.Depth)
 		}
 	}
 }

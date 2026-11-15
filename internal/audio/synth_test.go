@@ -2,6 +2,7 @@ package audio
 
 import (
 	"bytes"
+	"math"
 	"testing"
 
 	"github.com/danielriddell21/crucible/synth"
@@ -11,7 +12,10 @@ import (
 
 func TestSynthCoversAllCues(t *testing.T) {
 	sounds := Synth()
-	cues := []Cue{CuePing, CueStep, CueCreak, CueDoor, CueConsole, CueHiss, CueScreech, CueDeath, CueEscape, CueDecoy}
+	cues := []Cue{
+		CuePing, CueStep, CueCreak, CueDoor, CueConsole, CueHiss, CueScreech, CueDeath, CueEscape, CueDecoy,
+		CueMenuMove, CueMenuSelect, CueTorch, CueBattery, CueHeartbeat, CueGrowl, CueGroan,
+	}
 	for _, c := range cues {
 		pcm, ok := sounds[c]
 		if !ok || len(pcm) == 0 {
@@ -66,6 +70,9 @@ func TestCueFor(t *testing.T) {
 		{sim.ObsDoorOpen, CueDoor, true},
 		{sim.ObsConsole, CueConsole, true},
 		{sim.ObsAlienHeard, CueHiss, true},
+		{sim.ObsAlienGlow, CueHiss, true},
+		{sim.ObsTorch, CueTorch, true},
+		{sim.ObsBattery, CueBattery, true},
 		{sim.ObsAlienSeen, CueScreech, true},
 		{sim.ObsDeath, CueDeath, true},
 		{sim.ObsEscape, CueEscape, true},
@@ -122,3 +129,65 @@ func TestCueForDecoy(t *testing.T) {
 }
 
 // Pan and Panned now live in crucible/synth and are covered by its tests.
+
+func sample(pcm []byte, frame int) float64 {
+	i := frame * synth.BytesPerFrame
+	return float64(int16(uint16(pcm[i])|uint16(pcm[i+1])<<8)) / 32768
+}
+
+func TestAmbientLoopSeamIsSilent(t *testing.T) {
+	for band := 0; band <= maxMenaceBand; band++ {
+		pcm := Ambient(band)
+		frames := len(pcm) / synth.BytesPerFrame
+		// The jump across the loop point must be no bigger than the largest
+		// step between neighbouring samples inside the loop.
+		worst := 0.0
+		for f := 1; f < frames; f++ {
+			worst = math.Max(worst, math.Abs(sample(pcm, f)-sample(pcm, f-1)))
+		}
+		seam := math.Abs(sample(pcm, 0) - sample(pcm, frames-1))
+		if seam > worst*1.5 {
+			t.Errorf("band %d: loop seam jumps %.4f, the largest step inside the loop is %.4f", band, seam, worst)
+		}
+	}
+}
+
+func TestFear(t *testing.T) {
+	if got := Fear(30, false); got != 0 {
+		t.Errorf("fear with the hunter far away = %v, want 0", got)
+	}
+	if near, mid := Fear(2, false), Fear(8, false); near <= mid || mid <= 0 {
+		t.Errorf("fear should rise as the hunter closes: near=%v mid=%v", near, mid)
+	}
+	if got := Fear(30, true); got < 0.75 {
+		t.Errorf("fear during a chase = %v, want at least 0.75", got)
+	}
+	if got := Fear(-5, true); got != 1 {
+		t.Errorf("fear clamps at 1, got %v", got)
+	}
+}
+
+func TestHeartbeatQuickensWithFear(t *testing.T) {
+	if _, ok := HeartbeatInterval(0.1); ok {
+		t.Error("a calm heart should stay silent")
+	}
+	calm, ok1 := HeartbeatInterval(0.2)
+	panic, ok2 := HeartbeatInterval(1)
+	if !ok1 || !ok2 || panic >= calm {
+		t.Errorf("beat should quicken with fear: calm=%v panic=%v", calm, panic)
+	}
+	if math.Abs(panic-fastestBeat) > 1e-9 {
+		t.Errorf("full fear beats every %v, want %v", panic, fastestBeat)
+	}
+}
+
+func TestGrowlInterval(t *testing.T) {
+	if _, ok := GrowlInterval(growlRange + 1); ok {
+		t.Error("a distant hunter should not be heard breathing")
+	}
+	near, _ := GrowlInterval(1)
+	far, ok := GrowlInterval(growlRange)
+	if !ok || near >= far {
+		t.Errorf("breaths should come quicker up close: near=%v far=%v", near, far)
+	}
+}

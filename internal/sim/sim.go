@@ -39,6 +39,7 @@ type Input struct {
 	Use             bool
 	Hide            bool
 	Throw           bool
+	Torch           bool
 }
 
 type Game struct {
@@ -56,6 +57,7 @@ type Game struct {
 	director director
 
 	activated map[world.Coord]bool
+	taken     map[world.Coord]bool
 	learning  learning
 	decoy     Decoy
 	escaped   bool
@@ -64,6 +66,8 @@ type Game struct {
 	useLatch   bool
 	hideLatch  bool
 	throwLatch bool
+	torchLatch bool
+	glowTimer  float64
 }
 
 type Option func(*Game)
@@ -95,15 +99,17 @@ func New(l *world.Level, opts ...Option) *Game {
 	g := &Game{
 		World: NewWorld(l),
 		Player: Player{
-			Pos:    cellCenter(l.Spawn),
-			Angle:  spawnFacing(l),
-			Decoys: startingDecoys,
+			Pos:     cellCenter(l.Spawn),
+			Angle:   spawnFacing(l),
+			Decoys:  startingDecoys,
+			Battery: 1,
 		},
 		Tracker:   newTracker(),
 		threat:    1,
 		rng:       rand.New(rand.NewPCG(u^0xa5a5a5a5, u+0x9e3779b97f4a7c15)),
 		observer:  nopObserver{},
 		activated: make(map[world.Coord]bool),
+		taken:     make(map[world.Coord]bool),
 		learning:  newLearning(Learned{}, len(l.Rooms)),
 		director:  newDirector(),
 	}
@@ -155,6 +161,8 @@ func (g *Game) Tick(in Input, dt float64) {
 	noise := g.tickPlayer(in, dt)
 	g.tickTracker(in, dt, &noise)
 	g.tickHide(in)
+	g.tickTorch(in, dt)
+	g.collectBattery()
 	if in.Use && !g.useLatch && !g.Player.Hidden {
 		g.interact(&noise)
 	}

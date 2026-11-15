@@ -34,8 +34,24 @@ func notice(e telemetry.Event, s *sim.Game) (string, int, bool) {
 		}
 	case sim.ObsAlienSeen:
 		return "IT SEES YOU - RUN", noticeFrames, true
+	case sim.ObsAlienGlow:
+		return "SOMETHING SAW YOUR LIGHT", noticeFrames, true
+	case sim.ObsBattery:
+		return "TORCH CELL RECOVERED", noticeFrames, true
+	case sim.ObsTorch:
+		// The switch itself needs no caption; a cell giving out does.
+		if s.Player.Battery <= 0 {
+			return "TORCH DEAD - FIND A CELL", noticeFrames, true
+		}
 	}
 	return "", 0, false
+}
+
+func torchFailing(s *sim.Game, warned bool) (warn, post bool) {
+	// Warn once each time a lit torch sinks into its last fifth; a fresh cell
+	// re-arms the warning.
+	low := s.Player.Torch && s.Player.Battery > 0 && s.Player.Battery < sim.TorchLowMark
+	return low, low && !warned
 }
 
 func distanceToPlayer(e telemetry.Event, s *sim.Game) float64 {

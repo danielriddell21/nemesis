@@ -34,7 +34,7 @@ func FromObservation(o sim.Observation) Event {
 	case sim.ObsAlienState:
 		e.State = o.State.String()
 		e.TargetX, e.TargetY = o.Target.X, o.Target.Y
-	case sim.ObsAlienHeard, sim.ObsDirectorNudge:
+	case sim.ObsAlienHeard, sim.ObsAlienGlow, sim.ObsDirectorNudge:
 		e.TargetX, e.TargetY = o.Target.X, o.Target.Y
 	case sim.ObsAlienLearn:
 		e.Learn = o.Learn.String()
@@ -43,37 +43,33 @@ func FromObservation(o sim.Observation) Event {
 	return e
 }
 
-func (e Event) Line() string {
-	switch e.Type {
-	case "vent-creak", "alien-creak":
-		return fmt.Sprintf("VENT CREAK AT %d %d", e.X, e.Y)
-	case "door":
-		return fmt.Sprintf("BULKHEAD OPENED AT %d %d", e.X, e.Y)
-	case "console":
-		return fmt.Sprintf("GENERATOR ONLINE AT %d %d", e.X, e.Y)
-	case "ping":
-		return fmt.Sprintf("TRACKER PING AT %d %d", e.X, e.Y)
-	case "decoy":
-		return fmt.Sprintf("DECOY CHIRPS AT %d %d", e.X, e.Y)
-	case "hide":
-		return fmt.Sprintf("PREY DUCKS INTO LOCKER AT %d %d", e.X, e.Y)
-	case "alien-state":
-		return fmt.Sprintf("HUNTER %s -> %d %d", e.State, e.TargetX, e.TargetY)
-	case "alien-heard":
-		return fmt.Sprintf("HUNTER HEARD NOISE AT %d %d", e.TargetX, e.TargetY)
-	case "alien-seen":
-		return fmt.Sprintf("HUNTER SPOTTED PREY AT %d %d", e.X, e.Y)
-	case "director-nudge":
-		return fmt.Sprintf("DIRECTOR STEERS HUNT TO %d %d", e.TargetX, e.TargetY)
-	case "alien-learn":
+var lines = map[string]func(Event) string{
+	"vent-creak":     func(e Event) string { return fmt.Sprintf("VENT CREAK AT %d %d", e.X, e.Y) },
+	"alien-creak":    func(e Event) string { return fmt.Sprintf("VENT CREAK AT %d %d", e.X, e.Y) },
+	"door":           func(e Event) string { return fmt.Sprintf("BULKHEAD OPENED AT %d %d", e.X, e.Y) },
+	"console":        func(e Event) string { return fmt.Sprintf("GENERATOR ONLINE AT %d %d", e.X, e.Y) },
+	"ping":           func(e Event) string { return fmt.Sprintf("TRACKER PING AT %d %d", e.X, e.Y) },
+	"decoy":          func(e Event) string { return fmt.Sprintf("DECOY CHIRPS AT %d %d", e.X, e.Y) },
+	"hide":           func(e Event) string { return fmt.Sprintf("PREY DUCKS INTO LOCKER AT %d %d", e.X, e.Y) },
+	"battery":        func(e Event) string { return fmt.Sprintf("TORCH CELL TAKEN AT %d %d", e.X, e.Y) },
+	"alien-state":    func(e Event) string { return fmt.Sprintf("HUNTER %s -> %d %d", e.State, e.TargetX, e.TargetY) },
+	"alien-heard":    func(e Event) string { return fmt.Sprintf("HUNTER HEARD NOISE AT %d %d", e.TargetX, e.TargetY) },
+	"alien-glow":     func(e Event) string { return fmt.Sprintf("HUNTER NOTICED TORCHLIGHT AT %d %d", e.TargetX, e.TargetY) },
+	"alien-seen":     func(e Event) string { return fmt.Sprintf("HUNTER SPOTTED PREY AT %d %d", e.X, e.Y) },
+	"director-nudge": func(e Event) string { return fmt.Sprintf("DIRECTOR STEERS HUNT TO %d %d", e.TargetX, e.TargetY) },
+	"alien-learn": func(e Event) string {
 		return fmt.Sprintf("HUNTER LEARNED %s %s", strings.ToUpper(e.Learn), roman(e.Tier))
-	case "escape":
-		return "PREY ESCAPED THROUGH THE AIRLOCK"
-	case "death":
-		return fmt.Sprintf("PREY KILLED AT %d %d", e.X, e.Y)
-	default:
+	},
+	"escape": func(Event) string { return "PREY ESCAPED THROUGH THE AIRLOCK" },
+	"death":  func(e Event) string { return fmt.Sprintf("PREY KILLED AT %d %d", e.X, e.Y) },
+}
+
+func (e Event) Line() string {
+	format, ok := lines[e.Type]
+	if !ok {
 		return ""
 	}
+	return format(e)
 }
 
 // Subscriber receives each published event. It aliases the engine's
@@ -108,7 +104,7 @@ func (b *Bus) Recent() []Event {
 }
 
 func (e Event) Kind() (sim.ObservationKind, bool) {
-	for k := sim.ObsStep; k <= sim.ObsAlienLearn; k++ {
+	for k := sim.ObsStep; k < sim.ObsKindCount; k++ {
 		if k.String() == e.Type {
 			return k, true
 		}

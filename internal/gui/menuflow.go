@@ -19,6 +19,7 @@ var controlHints = []keymap.Binding{
 	{Key: "F", Action: "HIDE"},
 	{Key: "T", Action: "TRACKER"},
 	{Key: "Q", Action: "DECOY"},
+	{Key: "R", Action: "TORCH"},
 }
 
 // controlsSubtitle formats the control scheme as two centred rows for a menu

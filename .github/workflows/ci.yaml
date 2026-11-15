@@ -20,3 +20,18 @@ jobs:
     secrets:
       codecov-token: ${{ secrets.CODECOV_TOKEN }}
       tag-token: ${{ secrets.NEMESIS_TOKEN }}
+
+  # The balance gate, the same command as `just eval`. Its pass marks live in
+  # internal/eval, so this job and a local run can never disagree.
+  eval:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+
+      - run: go run ./tools/eval
